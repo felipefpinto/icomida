@@ -17,15 +17,37 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  function handleContinue() {
-    if (method === "email") {
-      console.log("Continuar com:", email);
+  async function handleContinue() {
+  if (method !== "email") {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "http://localhost:8000/usuarios/verificar-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Erro ao verificar e-mail");
     }
 
-    if (method === "phone") {
-      console.log("Continuar com:", phone);
-    }
+    const data = await response.json();
+
+    console.log(data);
+
+  } catch (error) {
+    console.error(error);
   }
+}
 
   function handleGoogleLogin() {
     console.log("Login com Google");
