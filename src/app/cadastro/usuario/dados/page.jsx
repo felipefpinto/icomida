@@ -117,7 +117,7 @@ export default function DadosUsuario() {
         console.log("Usuário cadastrado:", data);
 
         // Cadastro realizado com sucesso
-        router.push("/login");
+        router.push("/");
 
     } catch (error) {
         console.error("Erro ao cadastrar usuário:", error);
