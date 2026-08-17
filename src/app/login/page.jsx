@@ -33,7 +33,7 @@ export default function Login() {
 
     // Usuário encontrado
     if (response.status === 200) {
-      router.push(`/login/senha?email=${encodeURIComponent(email)}`);
+      router.push(`/login/verificar-email?email=${encodeURIComponent(email)}`);
       return;
     }
 
