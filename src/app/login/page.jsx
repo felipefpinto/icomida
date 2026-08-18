@@ -337,7 +337,7 @@ export default function Login() {
 
                   <Mail
                     size={19}
-                    className="ml-3 text-gray-400"
+                    className="ml-3 text-gray-500"
                   />
 
                   <input
@@ -351,7 +351,7 @@ export default function Login() {
                       flex-1
                       bg-transparent
                       px-3
-                      text-sm
+                      text-gray-900
                       outline-none
                     "
                   />
@@ -494,7 +494,7 @@ export default function Login() {
                       flex-1
                       bg-transparent
                       px-3
-                      text-sm
+                      text-gray-900
                       outline-none
                     "
                   />
