@@ -1,36 +1,167 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-## Getting Started
+# E-commerce — Frontend
 
-First, run the development server:
+Frontend da aplicação de e-commerce desenvolvido com **Next.js**.
+
+## Tecnologias utilizadas
+
+* Next.js
+* React
+* TypeScript/JavaScript
+* Tailwind CSS
+* Lucide React
+
+## Pré-requisitos
+
+Antes de executar o projeto, certifique-se de ter instalado:
+
+* [Node.js](https://nodejs.org/) — versão 18 ou superior
+* npm
+
+Para verificar as versões:
+
+```bash
+node --version
+npm --version
+```
+
+## Instalação
+
+Clone o repositório:
+
+```bash
+git clone <URL_DO_REPOSITORIO_FRONTEND>
+```
+
+Entre na pasta do projeto:
+
+```bash
+cd <NOME_DO_PROJETO>
+```
+
+Instale as dependências:
+
+```bash
+npm install
+```
+
+## Configuração
+
+Crie um arquivo `.env.local` na raiz do projeto:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+A variável `NEXT_PUBLIC_API_URL` deve apontar para a URL onde a API do backend está sendo executada.
+
+## Executando o projeto
+
+Para iniciar o servidor de desenvolvimento:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Por padrão, o frontend estará disponível em:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Abra o endereço no navegador.
 
-## Learn More
+## Estrutura básica
 
-To learn more about Next.js, take a look at the following resources:
+```text
+frontend/
+├── app/
+│   ├── cadastro/
+│   ├── login/
+│   └── ...
+├── public/
+├── .env.local
+├── package.json
+├── package-lock.json
+└── README.md
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts disponíveis
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Desenvolvimento
 
-## Deploy on Vercel
+```bash
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Inicia o servidor de desenvolvimento.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Build
+
+```bash
+npm run build
+```
+
+Gera a versão de produção da aplicação.
+
+### Produção
+
+Após executar o build:
+
+```bash
+npm start
+```
+
+## Integração com o Backend
+
+O frontend realiza requisições HTTP para a API desenvolvida em FastAPI.
+
+Por padrão:
+
+```text
+Frontend
+http://localhost:3000
+       │
+       │ HTTP
+       ▼
+Backend
+http://localhost:8000
+```
+
+Certifique-se de que o backend esteja executando antes de utilizar funcionalidades que dependem da API.
+
+## Problemas comuns
+
+### Erro ao instalar dependências
+
+Remova `node_modules` e o arquivo de lock e instale novamente:
+
+```bash
+rm -rf node_modules
+npm install
+```
+
+No Windows PowerShell:
+
+```powershell
+Remove-Item -Recurse -Force node_modules
+npm install
+```
+
+### API não responde
+
+Verifique se o backend está executando:
+
+```text
+http://localhost:8000
+```
+
+Também confira a variável:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+## Equipe
+
+Projeto acadêmico de desenvolvimento de uma aplicação de e-commerce.
