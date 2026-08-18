@@ -51,7 +51,7 @@ export default function ConfirmarTelefoneLogin() {
 
   function enviarCodigo() {
     router.push(
-      `/login/verificar-codigo?email=${encodeURIComponent(
+      `/login/verificar-telefone?email=${encodeURIComponent(
         email
       )}&telefone=${encodeURIComponent(celular)}`
     );
