@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import {useEffect, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -17,6 +17,15 @@ import {
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    const usuarioSalvo = localStorage.getItem("usuarioLogado");
+
+    if (usuarioSalvo) {
+      setUsuario(JSON.parse(usuarioSalvo));
+    }
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white">
@@ -136,41 +145,64 @@ export default function Header() {
 
         {/* USUÁRIO */}
 
-        <Link
-          href="/login"
-          className="
-            hidden
-            items-center
-            gap-2
-            rounded-lg
-            px-2
-            py-2
-            transition
-            hover:bg-gray-100
-            md:flex
-          "
-        >
+        {usuario ? (
+          <div
+            className="
+              hidden
+              items-center
+              gap-2
+              rounded-lg
+              px-2
+              py-2
+              md:flex
+            "
+          >
+            <User
+              size={32}
+              className="text-gray-600"
+            />
 
-          <User
-            size={32}
-            className="text-gray-600"
-          />
+            <div className="flex flex-col items-start">
+              <span className="text-[15px] text-gray-500">
+                Olá!
+              </span>
 
-          <div className="flex flex-col items-start">
-
-            <span className="text-[15px] text-gray-500">
-              Olá!
-            </span>
-
-            <strong className="text-s font-semibold text-gray-800">
-              Entrar
-            </strong>
-
+              <strong className="text-sm font-semibold text-gray-800">
+                {usuario.nome.split(" ")[0]}
+              </strong>
+            </div>
           </div>
+        ) : (
+          <Link
+            href="/login"
+            className="
+              hidden
+              items-center
+              gap-2
+              rounded-lg
+              px-2
+              py-2
+              transition
+              hover:bg-gray-100
+              md:flex
+            "
+          >
+            <User
+              size={32}
+              className="text-gray-600"
+            />
 
-          
+            <div className="flex flex-col items-start">
+              <span className="text-[15px] text-gray-500">
+                Olá!
+              </span>
 
-        </Link>
+              <strong className="text-sm font-semibold text-gray-800">
+                Entrar
+              </strong>
+            </div>
+          </Link>
+        )}
 
 
         {/* FAVORITOS */}
