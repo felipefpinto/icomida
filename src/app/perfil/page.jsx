@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 
 export default function Perfil() {
@@ -71,16 +72,35 @@ export default function Perfil() {
 
         <div className="mb-8">
 
-          <h1 className="text-3xl font-bold text-gray-900">
-            Minha conta
-          </h1>
+        <div className="flex items-center justify-between">
 
-          <p className="mt-2 text-sm text-gray-500">
-            Gerencie seus dados e preferências.
-          </p>
+            <h1 className="text-3xl font-bold text-gray-900">
+            Minha conta
+            </h1>
+
+            <Link
+            href="/"
+            className="
+                inline-flex
+                items-center
+                gap-2
+                text-sm
+                text-gray-600
+                transition
+                hover:text-red-600
+            "
+            >
+            <ArrowLeft size={18} />
+            Voltar para o início
+            </Link>
 
         </div>
 
+        <p className="mt-2 text-sm text-gray-500">
+            Gerencie seus dados e preferências.
+        </p>
+
+        </div>
 
         {/* USUÁRIO */}
 
