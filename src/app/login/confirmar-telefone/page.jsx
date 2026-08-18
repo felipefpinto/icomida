@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -9,85 +9,60 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-export default function VerificarCodigoLogin() {
+export default function ConfirmarTelefoneLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
-  const telefone = searchParams.get("telefone");
 
-  const [codigo, setCodigo] = useState([
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-  ]);
-
+  const [celular, setCelular] = useState("");
+  const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  const inputsRef = useRef([]);
+  useEffect(() => {
+    async function buscarTelefone() {
+      if (!email) {
+        setErro("E-mail não informado.");
+        setCarregando(false);
+        return;
+      }
 
-  // Código temporário para testes
-  const codigoCorreto = "123456";
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/usuario/telefone?email=${encodeURIComponent(email)}`
+        );
 
-  function handleChange(value, index) {
-    // Permite apenas números
-    if (!/^\d*$/.test(value)) return;
+        if (!response.ok) {
+          throw new Error("Telefone não encontrado.");
+        }
 
-    const novoCodigo = [...codigo];
+        const data = await response.json();
 
-    novoCodigo[index] = value.slice(-1);
-
-    setCodigo(novoCodigo);
-    setErro("");
-
-    // Vai automaticamente para o próximo campo
-    if (value && index < 5) {
-      inputsRef.current[index + 1]?.focus();
-    }
-  }
-
-  function handleKeyDown(event, index) {
-    // Volta para o campo anterior ao apagar
-    if (
-      event.key === "Backspace" &&
-      !codigo[index] &&
-      index > 0
-    ) {
-      inputsRef.current[index - 1]?.focus();
-    }
-  }
-
-  function handleSubmit(event) {
-    event.preventDefault();
-
-    const codigoDigitado = codigo.join("");
-
-    // Verifica se todos os campos foram preenchidos
-    if (codigoDigitado.length !== 6) {
-      setErro("Digite o código completo.");
-      return;
+        setCelular(data.numero);
+      } catch (error) {
+        setErro("Não foi possível encontrar o telefone cadastrado.");
+      } finally {
+        setCarregando(false);
+      }
     }
 
-    // Código temporário
-    if (codigoDigitado !== codigoCorreto) {
-      setErro("Código incorreto. Tente novamente.");
-      return;
-    }
+    buscarTelefone();
+  }, [email]);
 
-    // Login aprovado temporariamente
-    router.push("/dashboard");
+  function enviarCodigo() {
+    router.push(
+      `/login/verificar-codigo?email=${encodeURIComponent(
+        email
+      )}&telefone=${encodeURIComponent(celular)}`
+    );
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
       <div className="w-full max-w-md">
 
-        {/* VOLTAR */}
         <Link
-          href={`/login/telefone?email=${encodeURIComponent(email || "")}`}
+          href="/login"
           className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 transition hover:text-red-600"
         >
           <ArrowLeft size={18} />
@@ -96,79 +71,46 @@ export default function VerificarCodigoLogin() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
 
-          {/* ÍCONE */}
           <div className="mb-6 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600">
               <Smartphone size={30} />
             </div>
           </div>
 
-          {/* TÍTULO */}
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">
-              Digite o código de 6 dígitos que enviamos para:
+              Confirme seu telefone
             </h1>
 
-            <p className="mt-3 text-lg font-medium text-gray-900">
-              {telefone || "Telefone não informado"}
+            <p className="mt-3 text-sm text-gray-500">
+              Enviaremos um código de confirmação para o número:
             </p>
-          </div>
 
-          {/* FORMULÁRIO */}
-          <form onSubmit={handleSubmit}>
+            {carregando && (
+              <p className="mt-4 text-gray-500">
+                Carregando telefone...
+              </p>
+            )}
 
-            {/* CAMPOS DO OTP */}
-            <div className="mt-8 flex justify-center gap-2 sm:gap-3">
-              {codigo.map((numero, index) => (
-                <input
-                  key={index}
-                  ref={(element) => {
-                    inputsRef.current[index] = element;
-                  }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={numero}
-                  onChange={(event) =>
-                    handleChange(event.target.value, index)
-                  }
-                  onKeyDown={(event) =>
-                    handleKeyDown(event, index)
-                  }
-                  className="
-                    h-14
-                    w-11
-                    rounded-lg
-                    border
-                    border-gray-300
-                    bg-gray-50
-                    text-center
-                    text-xl
-                    font-semibold
-                    text-gray-900
-                    outline-none
-                    transition
-                    focus:border-red-600
-                    focus:ring-2
-                    focus:ring-red-100
-                    sm:w-12
-                  "
-                />
-              ))}
-            </div>
-
-            {/* ERRO */}
             {erro && (
-              <p className="mt-4 text-center text-sm text-red-600">
+              <p className="mt-4 text-sm text-red-600">
                 {erro}
               </p>
             )}
 
-            {/* BOTÃO */}
+            {!carregando && !erro && (
+              <p className="mt-4 text-lg font-semibold text-gray-900">
+                {celular}
+              </p>
+            )}
+          </div>
+
+          {!carregando && !erro && (
             <button
-              type="submit"
+              type="button"
+              onClick={enviarCodigo}
               className="
-                mt-6
+                mt-8
                 flex
                 h-12
                 w-full
@@ -184,28 +126,10 @@ export default function VerificarCodigoLogin() {
                 hover:bg-red-700
               "
             >
-              Confirmar código
+              Enviar código
               <ArrowRight size={18} />
             </button>
-
-          </form>
-
-          {/* REENVIO */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              Não recebeu o código?
-            </p>
-
-            <button
-              type="button"
-              onClick={() => {
-                alert("Código reenviado!");
-              }}
-              className="mt-2 text-sm font-medium text-red-600 transition hover:text-red-700"
-            >
-              Reenviar código
-            </button>
-          </div>
+          )}
 
         </div>
       </div>
