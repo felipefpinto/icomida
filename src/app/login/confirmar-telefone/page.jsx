@@ -1,78 +1,214 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Smartphone,
+  ArrowRight,
+} from "lucide-react";
 
-export default function ConfirmarTelefoneLogin() {
+export default function VerificarCodigoLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
+  const telefone = searchParams.get("telefone");
 
-  const [celular, setCelular] = useState("");
-  const [carregando, setCarregando] = useState(true);
+  const [codigo, setCodigo] = useState([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
+
   const [erro, setErro] = useState("");
 
-  console.log("COMPONENTE CARREGADO");
-  console.log("EMAIL DA URL:", email);
+  const inputsRef = useRef([]);
 
-  useEffect(() => {
-    console.log("USEEFFECT EXECUTADO");
-    console.log("EMAIL:", email);
+  // Código temporário para testes
+  const codigoCorreto = "123456";
 
-    async function buscarTelefone() {
-      if (!email) {
-        console.log("EMAIL NÃO FOI RECEBIDO");
-        setErro("E-mail não informado.");
-        setCarregando(false);
-        return;
-      }
+  function handleChange(value, index) {
+    // Permite apenas números
+    if (!/^\d*$/.test(value)) return;
 
-      try {
-        const url = `http://127.0.0.1:8000/usuario/telefone?email=${encodeURIComponent(email)}`;
+    const novoCodigo = [...codigo];
 
-        console.log("FAZENDO REQUISIÇÃO PARA:", url);
+    novoCodigo[index] = value.slice(-1);
 
-        const response = await fetch(url);
+    setCodigo(novoCodigo);
+    setErro("");
 
-        console.log("STATUS DA RESPOSTA:", response.status);
+    // Vai automaticamente para o próximo campo
+    if (value && index < 5) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  }
 
-        const data = await response.json();
+  function handleKeyDown(event, index) {
+    // Volta para o campo anterior ao apagar
+    if (
+      event.key === "Backspace" &&
+      !codigo[index] &&
+      index > 0
+    ) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  }
 
-        console.log("RESPOSTA DA API:", data);
+  function handleSubmit(event) {
+    event.preventDefault();
 
-        if (!response.ok) {
-          throw new Error(data.detail || "Telefone não encontrado.");
-        }
+    const codigoDigitado = codigo.join("");
 
-        console.log("CELULAR RECEBIDO:", data.celular);
-
-        setCelular(data.celular);
-
-      } catch (error) {
-        console.error("ERRO NA REQUISIÇÃO:", error);
-        setErro("Não foi possível encontrar o telefone cadastrado.");
-      } finally {
-        setCarregando(false);
-      }
+    // Verifica se todos os campos foram preenchidos
+    if (codigoDigitado.length !== 6) {
+      setErro("Digite o código completo.");
+      return;
     }
 
-    buscarTelefone();
-  }, [email]);
+    // Código temporário
+    if (codigoDigitado !== codigoCorreto) {
+      setErro("Código incorreto. Tente novamente.");
+      return;
+    }
+
+    // Login aprovado temporariamente
+    router.push("/dashboard");
+  }
 
   return (
-    <main>
-      <h1>Teste telefone</h1>
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
+      <div className="w-full max-w-md">
 
-      <p>E-mail: {email || "Não informado"}</p>
+        {/* VOLTAR */}
+        <Link
+          href={`/login/telefone?email=${encodeURIComponent(email || "")}`}
+          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 transition hover:text-red-600"
+        >
+          <ArrowLeft size={18} />
+          Voltar
+        </Link>
 
-      <p>Telefone: {celular || "Não carregado"}</p>
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
 
-      <p>
-        Status: {carregando ? "Carregando..." : "Finalizado"}
-      </p>
+          {/* ÍCONE */}
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+              <Smartphone size={30} />
+            </div>
+          </div>
 
-      {erro && <p>Erro: {erro}</p>}
+          {/* TÍTULO */}
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Digite o código de 6 dígitos que enviamos para:
+            </h1>
+
+            <p className="mt-3 text-lg font-medium text-gray-900">
+              {telefone || "Telefone não informado"}
+            </p>
+          </div>
+
+          {/* FORMULÁRIO */}
+          <form onSubmit={handleSubmit}>
+
+            {/* CAMPOS DO OTP */}
+            <div className="mt-8 flex justify-center gap-2 sm:gap-3">
+              {codigo.map((numero, index) => (
+                <input
+                  key={index}
+                  ref={(element) => {
+                    inputsRef.current[index] = element;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={numero}
+                  onChange={(event) =>
+                    handleChange(event.target.value, index)
+                  }
+                  onKeyDown={(event) =>
+                    handleKeyDown(event, index)
+                  }
+                  className="
+                    h-14
+                    w-11
+                    rounded-lg
+                    border
+                    border-gray-300
+                    bg-gray-50
+                    text-center
+                    text-xl
+                    font-semibold
+                    text-gray-900
+                    outline-none
+                    transition
+                    focus:border-red-600
+                    focus:ring-2
+                    focus:ring-red-100
+                    sm:w-12
+                  "
+                />
+              ))}
+            </div>
+
+            {/* ERRO */}
+            {erro && (
+              <p className="mt-4 text-center text-sm text-red-600">
+                {erro}
+              </p>
+            )}
+
+            {/* BOTÃO */}
+            <button
+              type="submit"
+              className="
+                mt-6
+                flex
+                h-12
+                w-full
+                items-center
+                justify-center
+                gap-2
+                rounded-lg
+                bg-red-600
+                text-sm
+                font-semibold
+                text-white
+                transition
+                hover:bg-red-700
+              "
+            >
+              Confirmar código
+              <ArrowRight size={18} />
+            </button>
+
+          </form>
+
+          {/* REENVIO */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              Não recebeu o código?
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                alert("Código reenviado!");
+              }}
+              className="mt-2 text-sm font-medium text-red-600 transition hover:text-red-700"
+            >
+              Reenviar código
+            </button>
+          </div>
+
+        </div>
+      </div>
     </main>
   );
 }
