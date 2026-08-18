@@ -4,7 +4,7 @@ import {useEffect, useState } from "react";
 import Link from "next/link";
 
 import {
-  Search,
+ Search,
   MapPin,
   ShoppingBag,
   User,
@@ -13,11 +13,13 @@ import {
   X,
   Heart,
   Clock,
+  LogOut,
 } from "lucide-react";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [usuario, setUsuario] = useState(null);
+  const [perfilOpen, setPerfilOpen] = useState(false);
 
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem("usuarioLogado");
@@ -26,6 +28,15 @@ export default function Header() {
       setUsuario(JSON.parse(usuarioSalvo));
     }
   }, []);
+
+  function sair() {
+  localStorage.removeItem("usuarioLogado");
+
+  setUsuario(null);
+  setPerfilOpen(false);
+
+  window.location.href = "/";
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white">
@@ -145,64 +156,175 @@ export default function Header() {
 
         {/* USUÁRIO */}
 
-        {usuario ? (
-          <div
-            className="
-              hidden
-              items-center
-              gap-2
-              rounded-lg
-              px-2
-              py-2
-              md:flex
-            "
-          >
-            <User
-              size={32}
-              className="text-gray-600"
-            />
+        {/* USUÁRIO */}
 
-            <div className="flex flex-col items-start">
-              <span className="text-[15px] text-gray-500">
-                Olá!
-              </span>
+{usuario ? (
 
-              <strong className="text-sm font-semibold text-gray-800">
-                {usuario.nome.split(" ")[0]}
-              </strong>
-            </div>
-          </div>
-        ) : (
-          <Link
-            href="/login"
-            className="
-              hidden
-              items-center
-              gap-2
-              rounded-lg
-              px-2
-              py-2
-              transition
-              hover:bg-gray-100
-              md:flex
-            "
-          >
-            <User
-              size={32}
-              className="text-gray-600"
-            />
+  <div className="relative hidden md:block">
 
-            <div className="flex flex-col items-start">
-              <span className="text-[15px] text-gray-500">
-                Olá!
-              </span>
+    <button
+      type="button"
+      onClick={() => setPerfilOpen(!perfilOpen)}
+      className="
+        flex
+        items-center
+        gap-2
+        rounded-lg
+        px-2
+        py-2
+        transition
+        hover:bg-gray-100
+      "
+    >
 
-              <strong className="text-sm font-semibold text-gray-800">
-                Entrar
-              </strong>
-            </div>
-          </Link>
+      <User
+        size={32}
+        className="text-gray-600"
+      />
+
+      <div className="flex flex-col items-start">
+
+        <span className="text-[15px] text-gray-500">
+          Olá!
+        </span>
+
+        <strong className="text-sm font-semibold text-gray-800">
+          {usuario.nome?.split(" ")[0]}
+        </strong>
+
+      </div>
+
+      <ChevronDown
+        size={16}
+        className={`
+          text-gray-500
+          transition-transform
+          ${perfilOpen ? "rotate-180" : ""}
+        `}
+      />
+
+    </button>
+
+
+    {/* DROPDOWN */}
+
+    {perfilOpen && (
+
+      <div
+        className="
+          absolute
+          right-0
+          top-full
+          mt-2
+          w-52
+          overflow-hidden
+          rounded-xl
+          border
+          border-gray-200
+          bg-white
+          shadow-lg
+        "
+      >
+
+        {/* PERFIL */}
+
+        <Link
+          href="/perfil"
+          onClick={() => setPerfilOpen(false)}
+          className="
+            flex
+            items-center
+            gap-3
+            px-4
+            py-3
+            text-sm
+            text-gray-700
+            transition
+            hover:bg-gray-50
+          "
+        >
+
+          <User size={18} />
+
+          <span>
+            Meu perfil
+          </span>
+
+        </Link>
+
+
+        {/* SAIR */}
+
+        <button
+          type="button"
+          onClick={sair}
+          className="
+            flex
+            w-full
+            items-center
+            gap-3
+            border-t
+            border-gray-100
+            px-4
+            py-3
+            text-sm
+            text-red-600
+            transition
+            hover:bg-red-50
+          "
+        >
+
+          <LogOut size={18} />
+
+          <span>
+            Sair
+          </span>
+
+        </button>
+
+        </div>
+
         )}
+
+        </div>
+
+        ) : (
+
+        <Link
+          href="/login"
+          className="
+            hidden
+            items-center
+            gap-2
+            rounded-lg
+            px-2
+            py-2
+            transition
+            hover:bg-gray-100
+            md:flex
+          "
+        >
+
+          <User
+            size={32}
+            className="text-gray-600"
+          />
+
+          <div className="flex flex-col items-start">
+
+            <span className="text-[15px] text-gray-500">
+              Olá!
+            </span>
+
+            <strong className="text-sm font-semibold text-gray-800">
+              Entrar
+            </strong>
+
+          </div>
+
+        </Link>
+
+      )}
 
 
         {/* FAVORITOS */}
