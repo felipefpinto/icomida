@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  Phone,
+  Smartphone,
   User,
 } from "lucide-react";
 
@@ -102,7 +102,7 @@ export default function TelefoneUsuario() {
                 text-red-600
               "
             >
-              <Phone size={30} />
+              <Smartphone size={30} />
             </div>
           </div>
 
@@ -110,24 +110,24 @@ export default function TelefoneUsuario() {
           <div className="text-center">
 
             <h1 className="text-2xl font-bold text-gray-900">
-              Informe seu telefone
+              Informe seu celular
             </h1>
 
             <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              Precisamos do seu número de telefone para
+              Precisamos do seu número de celular para
               continuar o cadastro.
             </p>
 
           </div>
 
-          {/* TELEFONE */}
+          {/* CELULAR */}
           <div className="mt-8">
 
             <label
               htmlFor="telefone"
               className="mb-2 block text-sm font-medium text-gray-700"
             >
-              Telefone
+              Celular:
             </label>
 
             <div
@@ -146,7 +146,7 @@ export default function TelefoneUsuario() {
                 focus-within:ring-red-100
               "
             >
-              <Phone
+              <Smartphone
                 size={20}
                 className="text-gray-400"
               />

@@ -12,44 +12,77 @@ import {
 } from "lucide-react";
 
 export default function Login() {
-
-  const [method, setMethod] = useState(null);
   const router = useRouter();
 
+  const [method, setMethod] = useState(null);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  async function handleContinue() {
-  if (method !== "email") {
-    return;
-  }
+   async function handleContinue() {
+    try {
+      // =========================
+      // LOGIN POR E-MAIL
+      // =========================
+      if (method === "email") {
+        const response = await fetch(
+          `http://127.0.0.1:8000/usuario/buscaremail?email=${encodeURIComponent(email)}`
+        );
 
-  try {
-    const response = await fetch(
-      `http://127.0.0.1:8000/usuario/buscaremail?email=${encodeURIComponent(email)}`
-    );
+        console.log("Status da resposta:", response.status);
 
-    console.log("Status da resposta:", response.status);
+        if (response.status === 200) {
+          router.push(
+            `/login/verificar-email?email=${encodeURIComponent(email)}`
+          );
+          return;
+        }
 
-    // Usuário encontrado
-    if (response.status === 200) {
-      router.push(`/login/verificar-email?email=${encodeURIComponent(email)}`);
-      return;
+        if (response.status === 404) {
+          router.push(
+            `/cadastro?email=${encodeURIComponent(email)}`
+          );
+          return;
+        }
+
+        throw new Error("Erro ao verificar e-mail");
+      }
+
+      // =========================
+      // LOGIN POR CELULAR
+      // =========================
+      if (method === "phone") {
+        const numero = phone.replace(/\D/g, "");
+
+        const celular = `${numero}`;
+
+        console.log("Celular enviado:", celular);
+
+        const response = await fetch(
+          `http://127.0.0.1:8000/usuario/buscarcelular?celular=${encodeURIComponent(celular)}`
+        );
+
+        console.log("Status da resposta:", response.status);
+
+        if (response.status === 200) {
+          router.push(
+            `/login/verificar-telefone?celular=${encodeURIComponent(celular)}`
+          );
+          return;
+        }
+
+        if (response.status === 404) {
+          router.push(
+            `/cadastro?celular=${encodeURIComponent(celular)}`
+          );
+          return;
+        }
+
+        throw new Error("Erro ao verificar celular");
+      }
+    } catch (error) {
+      console.error(error);
     }
-
-    // Usuário não encontrado
-    if (response.status === 404) {
-      router.push(`/cadastro?email=${encodeURIComponent(email)}`);
-      return;
-    }
-
-    // Qualquer outro erro
-    throw new Error("Erro ao verificar e-mail");
-
-  } catch (error) {
-    console.error(error);
   }
-}
 
   function handleGoogleLogin() {
     console.log("Login com Google");
@@ -474,9 +507,7 @@ export default function Login() {
                   "
                 >
 
-                  <span className="border-r border-gray-200 px-3 text-sm text-gray-600">
-                    +55
-                  </span>
+                  
 
                   <Smartphone
                     size={19}

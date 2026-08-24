@@ -14,17 +14,50 @@ export default function Cadastro() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
+  const celular = searchParams.get("celular");
 
   function cadastrarUsuario() {
-    router.push(
-      `/cadastro/usuario/confirmar-email?email=${encodeURIComponent(email || "")}`
-    );
+    // Cadastro iniciado por e-mail
+    if (email) {
+      router.push(
+        `/cadastro/usuario/confirmar-email?email=${encodeURIComponent(
+          email
+        )}`
+      );
+      return;
+    }
+
+    // Cadastro iniciado por telefone
+    if (celular) {
+      router.push(
+        `/cadastro/usuario/confirmar-telefone?celular=${encodeURIComponent(
+          celular
+        )}`
+      );
+      return;
+    }
   }
 
   function cadastrarRestaurante() {
-    router.push(
-      `/cadastro/restaurante/confirmar-email?email=${encodeURIComponent(email || "")}`
-    );
+    // Cadastro de restaurante por e-mail
+    if (email) {
+      router.push(
+        `/cadastro/restaurante/confirmar-email?email=${encodeURIComponent(
+          email
+        )}`
+      );
+      return;
+    }
+
+    // Cadastro de restaurante por celular
+    if (celular) {
+      router.push(
+        `/cadastro/restaurante/confirmar-telefone?celular=${encodeURIComponent(
+          celular
+        )}`
+      );
+      return;
+    }
   }
 
   return (
@@ -84,16 +117,18 @@ export default function Cadastro() {
               hover:bg-red-50
             "
           >
-            <div className="
-              flex
-              h-12
-              w-12
-              items-center
-              justify-center
-              rounded-xl
-              bg-red-50
-              text-red-600
-            ">
+            <div
+              className="
+                flex
+                h-12
+                w-12
+                items-center
+                justify-center
+                rounded-xl
+                bg-red-50
+                text-red-600
+              "
+            >
               <User size={24} />
             </div>
 
@@ -132,16 +167,18 @@ export default function Cadastro() {
               hover:bg-red-50
             "
           >
-            <div className="
-              flex
-              h-12
-              w-12
-              items-center
-              justify-center
-              rounded-xl
-              bg-red-50
-              text-red-600
-            ">
+            <div
+              className="
+                flex
+                h-12
+                w-12
+                items-center
+                justify-center
+                rounded-xl
+                bg-red-50
+                text-red-600
+              "
+            >
               <Store size={24} />
             </div>
 
@@ -161,9 +198,16 @@ export default function Cadastro() {
             />
           </button>
 
+          {/* INFORMAÇÃO DO CADASTRO */}
           {email && (
             <p className="mt-6 text-center text-xs text-gray-400">
               E-mail informado: {email}
+            </p>
+          )}
+
+          {celular && (
+            <p className="mt-6 text-center text-xs text-gray-400">
+              Celular informado: {celular}
             </p>
           )}
 
