@@ -17,11 +17,10 @@ export default function DadosUsuario() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email") || "";
-  const telefone = searchParams.get("telefone") || "";
+  const celular = searchParams.get("celular") || "";
 
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
-
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
@@ -64,71 +63,74 @@ export default function DadosUsuario() {
     setErro("");
 
     if (!nome.trim()) {
-        setErro("Digite seu nome completo.");
-        return;
+      setErro("Digite seu nome completo.");
+      return;
     }
 
     const cpfNumeros = cpf.replace(/\D/g, "");
-    const celularNumeros = telefone.replace(/\D/g, "");
+    const celularNumeros = celular.replace(/\D/g, "");
 
     if (cpfNumeros.length > 0 && cpfNumeros.length !== 11) {
-        setErro("Digite um CPF válido.");
-        return;
+      setErro("Digite um CPF válido.");
+      return;
     }
 
     if (celularNumeros.length !== 11) {
-        setErro("Telefone inválido.");
-        return;
+      setErro("Celular inválido.");
+      return;
+    }
+
+    if (!email) {
+      setErro("E-mail não informado.");
+      return;
     }
 
     try {
-        setCarregando(true);
+      setCarregando(true);
 
-        const response = await fetch(
+      const response = await fetch(
         "http://127.0.0.1:8000/usuario/",
         {
-            method: "POST",
-            headers: {
+          method: "POST",
+          headers: {
             "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
+          },
+          body: JSON.stringify({
             nome: nome.trim(),
             email: email,
             celular: celularNumeros,
             cpf: cpfNumeros || null,
-            }),
+          }),
         }
-        );
+      );
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!response.ok) {
+      if (!response.ok) {
         if (Array.isArray(data.detail)) {
-            setErro("Verifique os dados informados.");
+          setErro("Verifique os dados informados.");
         } else {
-            setErro(
+          setErro(
             data.detail || "Não foi possível realizar o cadastro."
-            );
+          );
         }
 
         return;
-        }
+      }
 
-        console.log("Usuário cadastrado:", data);
+      console.log("Usuário cadastrado:", data);
 
-        // Cadastro realizado com sucesso
-        router.push("/");
-
+      router.push("/");
     } catch (error) {
-        console.error("Erro ao cadastrar usuário:", error);
+      console.error("Erro ao cadastrar usuário:", error);
 
-        setErro(
+      setErro(
         "Não foi possível conectar com o servidor."
-        );
+      );
     } finally {
-        setCarregando(false);
+      setCarregando(false);
     }
-    }
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -138,7 +140,7 @@ export default function DadosUsuario() {
         <Link
           href={`/cadastro/usuario/verificar-telefone?email=${encodeURIComponent(
             email
-          )}&telefone=${encodeURIComponent(telefone)}`}
+          )}&celular=${encodeURIComponent(celular)}`}
           className="
             mb-6
             inline-flex
@@ -176,7 +178,6 @@ export default function DadosUsuario() {
 
           {/* TÍTULO */}
           <div className="text-center">
-
             <h1 className="text-2xl font-bold text-gray-900">
               Finalize seu cadastro
             </h1>
@@ -184,12 +185,10 @@ export default function DadosUsuario() {
             <p className="mt-2 text-sm leading-relaxed text-gray-500">
               Informe seus dados para criar sua conta.
             </p>
-
           </div>
 
           {/* NOME */}
           <div className="mt-8">
-
             <label
               htmlFor="nome"
               className="mb-2 block text-sm font-medium text-gray-700"
@@ -213,10 +212,7 @@ export default function DadosUsuario() {
                 focus-within:ring-red-100
               "
             >
-              <User
-                size={20}
-                className="text-gray-400"
-              />
+              <User size={20} className="text-gray-400" />
 
               <input
                 id="nome"
@@ -238,12 +234,10 @@ export default function DadosUsuario() {
                 "
               />
             </div>
-
           </div>
 
           {/* CPF */}
           <div className="mt-5">
-
             <label
               htmlFor="cpf"
               className="mb-2 block text-sm font-medium text-gray-700"
@@ -270,10 +264,7 @@ export default function DadosUsuario() {
                 focus-within:ring-red-100
               "
             >
-              <CreditCard
-                size={20}
-                className="text-gray-400"
-              />
+              <CreditCard size={20} className="text-gray-400" />
 
               <input
                 id="cpf"
@@ -293,15 +284,11 @@ export default function DadosUsuario() {
                 "
               />
             </div>
-
           </div>
 
           {/* EMAIL */}
           <div className="mt-5">
-
-            <label
-              className="mb-2 block text-sm font-medium text-gray-700"
-            >
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               E-mail
             </label>
 
@@ -317,10 +304,7 @@ export default function DadosUsuario() {
                 px-4
               "
             >
-              <Mail
-                size={20}
-                className="text-gray-400"
-              />
+              <Mail size={20} className="text-gray-400" />
 
               <div className="flex h-12 items-center">
                 <p className="truncate text-sm text-gray-600">
@@ -328,16 +312,12 @@ export default function DadosUsuario() {
                 </p>
               </div>
             </div>
-
           </div>
 
-          {/* TELEFONE */}
+          {/* CELULAR */}
           <div className="mt-5">
-
-            <label
-              className="mb-2 block text-sm font-medium text-gray-700"
-            >
-              Telefone
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Celular
             </label>
 
             <div
@@ -352,23 +332,19 @@ export default function DadosUsuario() {
                 px-4
               "
             >
-              <Phone
-                size={20}
-                className="text-gray-400"
-              />
+              <Phone size={20} className="text-gray-400" />
 
               <div className="flex h-12 items-center">
                 <p className="text-sm text-gray-600">
-                  {telefone
-                    ? telefone.replace(
+                  {celular
+                    ? celular.replace(
                         /(\d{2})(\d{5})(\d{4})/,
                         "($1) $2-$3"
                       )
-                    : "Telefone não informado"}
+                    : "Celular não informado"}
                 </p>
               </div>
             </div>
-
           </div>
 
           {/* ERRO */}
@@ -402,9 +378,7 @@ export default function DadosUsuario() {
               disabled:bg-gray-300
             "
           >
-            {carregando
-              ? "Cadastrando..."
-              : "Cadastrar"}
+            {carregando ? "Cadastrando..." : "Cadastrar"}
 
             {!carregando && <ArrowRight size={18} />}
           </button>

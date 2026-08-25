@@ -57,8 +57,8 @@ export default function TelefoneUsuario() {
 
     router.push(
       `/cadastro/usuario/verificar-telefone?email=${encodeURIComponent(
-    email || ""
-     )}&telefone=${encodeURIComponent(numeros)}`
+        email || ""
+      )}&celular=${encodeURIComponent(numeros)}`
     );
   }
 

@@ -51,28 +51,32 @@ export default function Login() {
       // LOGIN POR CELULAR
       // =========================
       if (method === "phone") {
-        const numero = phone.replace(/\D/g, "");
+        const celularFormatado = phone.replace(/\D/g, "");
 
-        const celular = `${numero}`;
-
-        console.log("Celular enviado:", celular);
+        console.log("Celular enviado:", celularFormatado);
 
         const response = await fetch(
-          `http://127.0.0.1:8000/usuario/buscarcelular?celular=${encodeURIComponent(celular)}`
+          `http://127.0.0.1:8000/usuario/buscarcelular?celular=${encodeURIComponent(
+            celularFormatado
+          )}`
         );
 
         console.log("Status da resposta:", response.status);
 
         if (response.status === 200) {
           router.push(
-            `/login/verificar-telefone?celular=${encodeURIComponent(celular)}`
+            `/login/verificar-telefone?celular=${encodeURIComponent(
+              celularFormatado
+            )}`
           );
           return;
         }
 
         if (response.status === 404) {
           router.push(
-            `/cadastro?celular=${encodeURIComponent(celular)}`
+            `/cadastro?celular=${encodeURIComponent(
+              celularFormatado
+            )}`
           );
           return;
         }

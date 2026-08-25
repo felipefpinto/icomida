@@ -5,18 +5,26 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Mail,
   ArrowRight,
-  User,
+  Mail,
 } from "lucide-react";
 
-export default function VerificarCodigo() {
+export default function VerificarEmail() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const email = searchParams.get("email");
+  const email = searchParams.get("email") || "";
+  const celular = searchParams.get("celular") || "";
 
-  const [codigo, setCodigo] = useState(["", "", "", "", "", ""]);
+  const [codigo, setCodigo] = useState([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
+
   const [erro, setErro] = useState("");
 
   const inputsRef = useRef([]);
@@ -24,10 +32,13 @@ export default function VerificarCodigo() {
   // Código temporário para testes
   const codigoCorreto = "123456";
 
-  const handleChange = (value, index) => {
-    if (!/^\d*$/.test(value)) return;
+  function handleChange(value, index) {
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
 
     const novoCodigo = [...codigo];
+
     novoCodigo[index] = value.slice(-1);
 
     setCodigo(novoCodigo);
@@ -36,9 +47,12 @@ export default function VerificarCodigo() {
     if (value && index < 5) {
       inputsRef.current[index + 1]?.focus();
     }
-  };
+  }
 
-  const handleKeyDown = (event, index) => {
+  function handleKeyDown(
+    event,
+    index, 
+  ) {
     if (
       event.key === "Backspace" &&
       !codigo[index] &&
@@ -46,9 +60,9 @@ export default function VerificarCodigo() {
     ) {
       inputsRef.current[index - 1]?.focus();
     }
-  };
+  }
 
-  const handleSubmit = (event) => {
+  function handleSubmit(event) {
     event.preventDefault();
 
     const codigoDigitado = codigo.join("");
@@ -63,11 +77,13 @@ export default function VerificarCodigo() {
       return;
     }
 
-    // Temporariamente, avança para a próxima etapa
+    // Código correto
     router.push(
-      `/cadastro/usuario/telefone?email=${encodeURIComponent(email || "")}`
+      `/cadastro/usuario/dados?email=${encodeURIComponent(
+        email
+      )}&celular=${encodeURIComponent(celular)}`
     );
-  };
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -76,8 +92,8 @@ export default function VerificarCodigo() {
         {/* VOLTAR */}
         <Link
           href={`/cadastro/usuario/confirmar-email?email=${encodeURIComponent(
-            email || ""
-          )}`}
+            email
+          )}&celular=${encodeURIComponent(celular)}`}
           className="
             mb-6
             inline-flex
@@ -115,7 +131,6 @@ export default function VerificarCodigo() {
 
           {/* TÍTULO */}
           <div className="text-center">
-
             <h1 className="text-2xl font-bold text-gray-900">
               Verifique seu e-mail
             </h1>
@@ -124,28 +139,31 @@ export default function VerificarCodigo() {
               Enviamos um código de 6 dígitos para:
             </p>
 
-            <p className="mt-1 truncate font-medium text-gray-900">
+            <p className="mt-1 font-medium text-gray-900 break-all">
               {email || "E-mail não informado"}
             </p>
-
           </div>
 
           {/* CÓDIGO */}
           <form onSubmit={handleSubmit}>
-
             <div className="mt-8 flex justify-center gap-2 sm:gap-3">
               {codigo.map((numero, index) => (
                 <input
                   key={index}
                   ref={(element) => {
-                    inputsRef.current[index] = element;
+                    if (element) {
+                      inputsRef.current[index] = element;
+                    }
                   }}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
                   value={numero}
                   onChange={(event) =>
-                    handleChange(event.target.value, index)
+                    handleChange(
+                      event.target.value,
+                      index
+                    )
                   }
                   onKeyDown={(event) =>
                     handleKeyDown(event, index)
@@ -200,15 +218,12 @@ export default function VerificarCodigo() {
               "
             >
               Confirmar código
-
               <ArrowRight size={18} />
             </button>
-
           </form>
 
           {/* REENVIO */}
           <div className="mt-6 text-center">
-
             <p className="text-sm text-gray-500">
               Não recebeu o código?
             </p>
@@ -226,7 +241,6 @@ export default function VerificarCodigo() {
             >
               Reenviar código
             </button>
-
           </div>
 
         </div>

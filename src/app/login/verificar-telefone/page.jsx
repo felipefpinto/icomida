@@ -14,7 +14,7 @@ export default function VerificarTelefone() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
-  const telefone = searchParams.get("telefone");
+  const celular = searchParams.get("celular");
 
   const [codigo, setCodigo] = useState([
     "",
@@ -73,30 +73,37 @@ const handleSubmit = async (event) => {
   }
 
   try {
-    // Verifica se o e-mail existe na URL
+    // Se não existe e-mail, significa que o usuário
+    // está fazendo cadastro pelo celular.
     if (!email) {
-      setErro("E-mail não informado.");
+      router.push(
+        `/cadastro/usuario/email?celular=${encodeURIComponent(
+          celular || ""
+        )}`
+      );
+
       return;
     }
 
-    // Busca os dados do usuário na API
-const response = await fetch(
-  `http://127.0.0.1:8000/usuario/dados-login?email=${encodeURIComponent(email)}`
-);
+    // Se possui e-mail, continua o login normalmente.
+    const response = await fetch(
+      `http://127.0.0.1:8000/usuario/dados-login?email=${encodeURIComponent(
+        email
+      )}`
+    );
 
-if (!response.ok) {
-  throw new Error("Usuário não encontrado");
-}
+    if (!response.ok) {
+      throw new Error("Usuário não encontrado");
+    }
 
-const usuario = await response.json();
+    const usuario = await response.json();
 
-localStorage.setItem(
-  "usuarioLogado",
-  JSON.stringify(usuario)
-);
+    localStorage.setItem(
+      "usuarioLogado",
+      JSON.stringify(usuario)
+    );
 
-router.push("/");
-
+    router.push("/");
   } catch (error) {
     console.error(error);
     setErro("Não foi possível realizar o login.");
@@ -157,12 +164,12 @@ router.push("/");
             </p>
 
             <p className="mt-1 font-medium text-gray-900">
-              {telefone
-                ? telefone.replace(
+              {celular
+                ? celular.replace(
                     /(\d{2})(\d{5})(\d{4})/,
                     "($1) $2-$3"
                   )
-                : "Telefone não informado"}
+                : "Celular não informado"}
             </p>
 
           </div>

@@ -14,7 +14,7 @@ export default function VerificarTelefone() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
-  const telefone = searchParams.get("telefone");
+  const celular = searchParams.get("celular");
 
   const [codigo, setCodigo] = useState([
     "",
@@ -57,28 +57,44 @@ export default function VerificarTelefone() {
     }
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+const handleSubmit = (event) => {
+  event.preventDefault();
 
-    const codigoDigitado = codigo.join("");
+  const codigoDigitado = codigo.join("");
 
-    if (codigoDigitado.length !== 6) {
-      setErro("Digite o código completo.");
-      return;
-    }
+  if (codigoDigitado.length !== 6) {
+    setErro("Digite o código completo.");
+    return;
+  }
 
-    if (codigoDigitado !== codigoCorreto) {
-      setErro("Código incorreto. Tente novamente.");
-      return;
-    }
+  if (codigoDigitado !== codigoCorreto) {
+    setErro("Código incorreto. Tente novamente.");
+    return;
+  }
 
-    // Código correto
+  // Código correto
+
+  // Se NÃO possui e-mail, vai para a tela de cadastro de e-mail
+  if (!email) {
     router.push(
-      `/cadastro/usuario/dados?email=${encodeURIComponent(
-        email || ""
-      )}&telefone=${encodeURIComponent(telefone || "")}`
+      `/cadastro/usuario/email?celular=${encodeURIComponent(
+        celular || ""
+      )}`
     );
-  };
+
+    return;
+  }
+
+  // Se já possui celular + e-mail,
+  // vai para a tela final de dados
+  router.push(
+    `/cadastro/usuario/dados?email=${encodeURIComponent(
+      email
+    )}&celular=${encodeURIComponent(
+      celular || ""
+    )}`
+  );
+};
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -86,8 +102,8 @@ export default function VerificarTelefone() {
 
         {/* VOLTAR */}
         <Link
-          href={`/cadastro/usuario/telefone?email=${encodeURIComponent(
-            email || ""
+          href={`/cadastro/usuario/confirmar-telefone?celular=${encodeURIComponent(
+          celular || ""
           )}`}
           className="
             mb-6
@@ -136,12 +152,12 @@ export default function VerificarTelefone() {
             </p>
 
             <p className="mt-1 font-medium text-gray-900">
-              {telefone
-                ? telefone.replace(
+              {celular
+                ? celular.replace(
                     /(\d{2})(\d{5})(\d{4})/,
                     "($1) $2-$3"
                   )
-                : "Telefone não informado"}
+                : "Celular não informado"}
             </p>
 
           </div>
