@@ -73,19 +73,48 @@ const handleSubmit = async (event) => {
   }
 
   try {
-    // Se não existe e-mail, significa que o usuário
-    // está fazendo cadastro pelo celular.
+    // ==========================================
+    // LOGIN POR CELULAR
+    // ==========================================
     if (!email) {
-      router.push(
-        `/cadastro/usuario/email?celular=${encodeURIComponent(
-          celular || ""
-        )}`
-      );
+  if (!celular) {
+    setErro("Celular não informado.");
+    return;
+  }
 
-      return;
-    }
+  const response = await fetch(
+    `http://127.0.0.1:8000/usuario/email?celular=${encodeURIComponent(
+      celular
+    )}`
+  );
 
-    // Se possui e-mail, continua o login normalmente.
+  if (!response.ok) {
+    setErro("Celular não encontrado.");
+    return;
+  }
+
+  const dados = await response.json();
+
+  if (!dados || !dados.email) {
+    setErro("E-mail não encontrado.");
+    return;
+  }
+
+  // Vai para a página ConfirmarEmail
+  // passando somente o celular.
+  router.push(
+    `/login/confirmar-email?celular=${encodeURIComponent(
+      celular
+    )}`
+  );
+
+  return;
+}
+
+    // ==========================================
+    // LOGIN POR E-MAIL
+    // ==========================================
+
     const response = await fetch(
       `http://127.0.0.1:8000/usuario/dados-login?email=${encodeURIComponent(
         email

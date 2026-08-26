@@ -3,20 +3,29 @@
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+
 import {
   ArrowLeft,
-  Mail,
   ArrowRight,
-  User,
+  Mail,
 } from "lucide-react";
 
-export default function VerificarCodigo() {
+export default function VerificarEmail() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
+  const celular = searchParams.get("celular");
 
-  const [codigo, setCodigo] = useState(["", "", "", "", "", ""]);
+  const [codigo, setCodigo] = useState([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
+
   const [erro, setErro] = useState("");
 
   const inputsRef = useRef([]);
@@ -28,6 +37,7 @@ export default function VerificarCodigo() {
     if (!/^\d*$/.test(value)) return;
 
     const novoCodigo = [...codigo];
+
     novoCodigo[index] = value.slice(-1);
 
     setCodigo(novoCodigo);
@@ -48,7 +58,7 @@ export default function VerificarCodigo() {
     }
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     const codigoDigitado = codigo.join("");
@@ -63,10 +73,73 @@ export default function VerificarCodigo() {
       return;
     }
 
-    // Temporariamente, avança para a próxima etapa
-    router.push(
-      `/login/confirmar-telefone?email=${encodeURIComponent(email)}`
-    );
+    try {
+      // ==========================================
+      // LOGIN POR CELULAR
+      // ==========================================
+
+      if (celular) {
+        const response = await fetch(
+          `http://127.0.0.1:8000/usuario/dados-login?celular=${encodeURIComponent(
+            celular
+          )}`
+        );
+
+        if (!response.ok) {
+          setErro("Usuário não encontrado.");
+          return;
+        }
+
+        const usuario = await response.json();
+
+        localStorage.setItem(
+          "usuarioLogado",
+          JSON.stringify(usuario)
+        );
+
+        router.push("/");
+
+        return;
+      }
+
+      // ==========================================
+      // LOGIN POR E-MAIL
+      // ==========================================
+
+      if (email) {
+        const response = await fetch(
+          `http://127.0.0.1:8000/usuario/dados-login?email=${encodeURIComponent(
+            email
+          )}`
+        );
+
+        if (!response.ok) {
+          setErro("Usuário não encontrado.");
+          return;
+        }
+
+        const usuario = await response.json();
+
+        localStorage.setItem(
+          "usuarioLogado",
+          JSON.stringify(usuario)
+        );
+
+        router.push("/");
+
+        return;
+      }
+
+      // ==========================================
+      // NENHUM DADO INFORMADO
+      // ==========================================
+
+      setErro("E-mail ou celular não informado.");
+
+    } catch (error) {
+      console.error(error);
+      setErro("Não foi possível realizar o login.");
+    }
   };
 
   return (
@@ -75,7 +148,7 @@ export default function VerificarCodigo() {
 
         {/* VOLTAR */}
         <Link
-          href={"/login"}
+          href="/login"
           className="
             mb-6
             inline-flex
@@ -113,21 +186,17 @@ export default function VerificarCodigo() {
 
           {/* TÍTULO */}
           <div className="text-center">
-
             <h1 className="text-2xl font-bold text-gray-900">
               Digite o código de 6 dígitos que enviamos para:
             </h1>
 
-            
             <p className="mt-1 truncate font-medium text-gray-900">
               {email || "E-mail não informado"}
             </p>
-
           </div>
 
           {/* CÓDIGO */}
           <form onSubmit={handleSubmit}>
-
             <div className="mt-8 flex justify-center gap-2 sm:gap-3">
               {codigo.map((numero, index) => (
                 <input
@@ -140,7 +209,10 @@ export default function VerificarCodigo() {
                   maxLength={1}
                   value={numero}
                   onChange={(event) =>
-                    handleChange(event.target.value, index)
+                    handleChange(
+                      event.target.value,
+                      index
+                    )
                   }
                   onKeyDown={(event) =>
                     handleKeyDown(event, index)
@@ -195,15 +267,12 @@ export default function VerificarCodigo() {
               "
             >
               Confirmar código
-
               <ArrowRight size={18} />
             </button>
-
           </form>
 
           {/* REENVIO */}
           <div className="mt-6 text-center">
-
             <p className="text-sm text-gray-500">
               Não recebeu o código?
             </p>
@@ -221,7 +290,6 @@ export default function VerificarCodigo() {
             >
               Reenviar código
             </button>
-
           </div>
 
         </div>
