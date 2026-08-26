@@ -59,88 +59,79 @@ export default function VerificarEmail() {
   };
 
   const handleSubmit = async (event) => {
-    event.preventDefault();
+  event.preventDefault();
 
-    const codigoDigitado = codigo.join("");
+  const codigoDigitado = codigo.join("");
 
-    if (codigoDigitado.length !== 6) {
-      setErro("Digite o código completo.");
-      return;
-    }
+  if (codigoDigitado.length !== 6) {
+    setErro("Digite o código completo.");
+    return;
+  }
 
-    if (codigoDigitado !== codigoCorreto) {
-      setErro("Código incorreto. Tente novamente.");
-      return;
-    }
+  if (codigoDigitado !== codigoCorreto) {
+    setErro("Código incorreto. Tente novamente.");
+    return;
+  }
 
-    try {
-      // ==========================================
-      // LOGIN POR CELULAR
-      // ==========================================
+  try {
+    // ==========================================
+    // LOGIN INICIADO PELO CELULAR
+    // ==========================================
+    // Temos email + celular.
+    // Nesse caso, os dois dados já foram confirmados.
+    // Podemos finalizar o login.
 
-      if (celular) {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/dados-login?celular=${encodeURIComponent(
-            celular
-          )}`
-        );
+    if (email && celular) {
+      const response = await fetch(
+        `http://127.0.0.1:8000/usuario/dados-login?celular=${encodeURIComponent(
+          celular
+        )}`
+      );
 
-        if (!response.ok) {
-          setErro("Usuário não encontrado.");
-          return;
-        }
-
-        const usuario = await response.json();
-
-        localStorage.setItem(
-          "usuarioLogado",
-          JSON.stringify(usuario)
-        );
-
-        router.push("/");
-
+      if (!response.ok) {
+        setErro("Usuário não encontrado.");
         return;
       }
 
-      // ==========================================
-      // LOGIN POR E-MAIL
-      // ==========================================
+      const usuario = await response.json();
 
-      if (email) {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/dados-login?email=${encodeURIComponent(
-            email
-          )}`
-        );
+      localStorage.setItem(
+        "usuarioLogado",
+        JSON.stringify(usuario)
+      );
 
-        if (!response.ok) {
-          setErro("Usuário não encontrado.");
-          return;
-        }
+      router.push("/");
 
-        const usuario = await response.json();
-
-        localStorage.setItem(
-          "usuarioLogado",
-          JSON.stringify(usuario)
-        );
-
-        router.push("/");
-
-        return;
-      }
-
-      // ==========================================
-      // NENHUM DADO INFORMADO
-      // ==========================================
-
-      setErro("E-mail ou celular não informado.");
-
-    } catch (error) {
-      console.error(error);
-      setErro("Não foi possível realizar o login.");
+      return;
     }
-  };
+
+    // ==========================================
+    // LOGIN INICIADO PELO E-MAIL
+    // ==========================================
+    // Temos somente o email.
+    // Ainda precisamos confirmar o celular.
+
+    if (email && !celular) {
+      router.push(
+        `/login/confirmar-telefone?email=${encodeURIComponent(
+          email
+        )}`
+      );
+
+      return;
+    }
+
+    // ==========================================
+    // NENHUM DADO INFORMADO
+    // ==========================================
+
+    setErro("E-mail não informado.");
+
+  } catch (error) {
+    console.error(error);
+    setErro("Não foi possível continuar o login.");
+  }
+};
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
