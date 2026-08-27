@@ -15,6 +15,7 @@ export default function TelefoneUsuario() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
+  const origem = searchParams.get("origem");
 
   const [telefone, setTelefone] = useState("");
   const [erro, setErro] = useState("");
@@ -58,7 +59,11 @@ export default function TelefoneUsuario() {
     router.push(
       `/cadastro/usuario/verificar-telefone?email=${encodeURIComponent(
         email || ""
-      )}&celular=${encodeURIComponent(numeros)}`
+      )}&celular=${encodeURIComponent(
+        numeros
+      )}&origem=${encodeURIComponent(
+        origem || ""
+      )}`
     );
   }
 

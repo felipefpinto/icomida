@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 import {
   Mail,
@@ -88,9 +89,13 @@ export default function Login() {
     }
   }
 
-  function handleGoogleLogin() {
-    console.log("Login com Google");
+  
+  async function handleGoogleLogin() {
+    await signIn("google", {
+      callbackUrl: "/login/google",
+    });
   }
+  
 
   function handleBack() {
     setMethod(null);

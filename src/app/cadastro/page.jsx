@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,9 +16,24 @@ export default function Cadastro() {
 
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
+  const origem = searchParams.get("origem");
 
   function cadastrarUsuario() {
-    // Cadastro iniciado por e-mail
+    // ==========================================
+    // CADASTRO INICIADO PELO GOOGLE
+    // ==========================================
+    if (origem === "google" && email) {
+      router.push(
+        `/cadastro/usuario/telefone?email=${encodeURIComponent(
+          email
+        )}&origem=google`
+      );
+      return;
+    }
+
+    // ==========================================
+    // CADASTRO INICIADO POR E-MAIL
+    // ==========================================
     if (email) {
       router.push(
         `/cadastro/usuario/confirmar-email?email=${encodeURIComponent(
@@ -27,7 +43,9 @@ export default function Cadastro() {
       return;
     }
 
-    // Cadastro iniciado por telefone
+    // ==========================================
+    // CADASTRO INICIADO POR CELULAR
+    // ==========================================
     if (celular) {
       router.push(
         `/cadastro/usuario/confirmar-telefone?celular=${encodeURIComponent(
@@ -64,6 +82,7 @@ export default function Cadastro() {
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
       <div className="w-full max-w-md">
 
+        {/* VOLTAR */}
         <Link
           href="/login"
           className="
@@ -81,8 +100,10 @@ export default function Cadastro() {
           Voltar
         </Link>
 
+        {/* CARD */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
 
+          {/* CABEÇALHO */}
           <div className="mb-8 text-center">
             <div className="mb-4 text-4xl">
               🍔

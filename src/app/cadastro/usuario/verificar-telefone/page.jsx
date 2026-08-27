@@ -15,6 +15,7 @@ export default function VerificarTelefone() {
 
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
+  const origem = searchParams.get("origem");
 
   const [codigo, setCodigo] = useState([
     "",
@@ -88,11 +89,13 @@ const handleSubmit = (event) => {
   // Se já possui celular + e-mail,
   // vai para a tela final de dados
   router.push(
-    `/cadastro/usuario/dados?email=${encodeURIComponent(
-      email
-    )}&celular=${encodeURIComponent(
-      celular || ""
-    )}`
+      `/cadastro/usuario/dados?email=${encodeURIComponent(
+        email
+      )}&celular=${encodeURIComponent(
+        celular || ""
+      )}&origem=${encodeURIComponent(
+        origem || ""
+      )}`
   );
 };
 
