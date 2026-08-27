@@ -79,7 +79,7 @@ export default function VerificarEmail() {
 
     // Código correto
     router.push(
-      `/cadastro/usuario/dados?email=${encodeURIComponent(
+      `/cadastro/usuario/telefone?email=${encodeURIComponent(
         email
       )}&celular=${encodeURIComponent(celular)}`
     );
