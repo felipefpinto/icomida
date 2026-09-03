@@ -20,6 +20,9 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [usuario, setUsuario] = useState(null);
   const [perfilOpen, setPerfilOpen] = useState(false);
+  const [enderecos, setEnderecos] = useState([]);
+  const [enderecoSelecionado, setEnderecoSelecionado] = useState(null);
+  const [menuEnderecoAberto, setMenuEnderecoAberto] = useState(false);
 
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem("usuarioLogado");
@@ -29,6 +32,82 @@ export default function Header() {
     }
   }, []);
 
+  useEffect(() => {
+  async function carregarEnderecos() {
+    const usuarioSalvo = localStorage.getItem("usuarioLogado");
+
+    if (!usuarioSalvo) {
+      setEnderecos([]);
+      setEnderecoSelecionado(null);
+      return;
+    }
+
+    try {
+      const usuarioLogado = JSON.parse(usuarioSalvo);
+
+      if (!usuarioLogado.id_usuario) {
+        return;
+      }
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/usuario/${usuarioLogado.id_usuario}/enderecos/`
+      );
+
+      if (!response.ok) {
+        throw new Error("Não foi possível buscar os endereços.");
+      }
+
+      const dados = await response.json();
+
+      setEnderecos(dados);
+
+      // Busca o ID salvo anteriormente
+      const enderecoSelecionadoId = localStorage.getItem(
+        "enderecoSelecionadoId"
+      );
+
+      let enderecoFinal = null;
+
+      // Procura o endereço salvo
+      if (enderecoSelecionadoId) {
+        enderecoFinal = dados.find(
+          (endereco) =>
+            endereco.id_endereco ===
+            Number(enderecoSelecionadoId)
+        );
+      }
+
+      // Se não houver endereço salvo, procura o principal
+      if (!enderecoFinal) {
+        enderecoFinal = dados.find(
+          (endereco) => endereco.ativo === true
+        );
+      }
+
+      // Se não houver principal, usa o primeiro
+      if (!enderecoFinal && dados.length > 0) {
+        enderecoFinal = dados[0];
+      }
+
+      if (enderecoFinal) {
+        setEnderecoSelecionado(enderecoFinal);
+
+        localStorage.setItem(
+          "enderecoSelecionadoId",
+          enderecoFinal.id_endereco.toString()
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Erro ao carregar endereços:",
+        error
+      );
+    }
+  }
+
+  carregarEnderecos();
+}, [usuario]);
+
   function sair() {
   localStorage.removeItem("usuarioLogado");
 
@@ -37,6 +116,17 @@ export default function Header() {
 
   window.location.href = "/";
   }
+
+  function selecionarEndereco(endereco) {
+  setEnderecoSelecionado(endereco);
+
+  localStorage.setItem(
+    "enderecoSelecionadoId",
+    endereco.id_endereco.toString()
+  );
+
+  setMenuEnderecoAberto(false);
+}
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white">
@@ -63,43 +153,240 @@ export default function Header() {
 
         {/* LOCALIZAÇÃO */}
 
-        <button
+{/* LOCALIZAÇÃO */}
+<div className="relative hidden lg:block">
+
+  <button
+    type="button"
+    onClick={() =>
+      setMenuEnderecoAberto(!menuEnderecoAberto)
+    }
+    className="
+      flex
+      items-center
+      gap-2
+      rounded-lg
+      px-2
+      py-2
+      transition
+      hover:bg-gray-100
+    "
+  >
+
+    <MapPin
+      size={21}
+      className="text-red-600"
+    />
+
+    <div className="flex max-w-[180px] flex-col items-start">
+
+      <span className="text-[11px] text-gray-500">
+        Entregar em
+      </span>
+
+      <strong className="max-w-[180px] truncate text-xs font-semibold text-gray-800">
+      {enderecoSelecionado
+    ? enderecoSelecionado.apelido || "Endereço"
+    : "Selecionar endereço"}
+      </strong>
+
+    </div>
+
+    <ChevronDown
+      size={16}
+      className={`
+        text-gray-500
+        transition-transform
+        ${menuEnderecoAberto ? "rotate-180" : ""}
+      `}
+    />
+
+  </button>
+
+
+  {/* DROPDOWN DE ENDEREÇOS */}
+  {menuEnderecoAberto && (
+
+    <div
+      className="
+        absolute
+        left-0
+        top-full
+        z-50
+        mt-2
+        w-80
+        overflow-hidden
+        rounded-xl
+        border
+        border-gray-200
+        bg-white
+        shadow-lg
+      "
+    >
+
+      {/* CABEÇALHO */}
+      <div className="border-b border-gray-100 px-4 py-3">
+
+        <p className="text-sm font-semibold text-gray-900">
+          Escolha o endereço
+        </p>
+
+        <p className="mt-1 text-xs text-gray-500">
+          Selecione onde deseja receber seu pedido.
+        </p>
+
+      </div>
+
+
+      {/* SEM ENDEREÇOS */}
+      {enderecos.length === 0 ? (
+
+        <div className="px-4 py-6 text-center">
+
+          <MapPin
+            size={24}
+            className="mx-auto text-gray-400"
+          />
+
+          <p className="mt-2 text-sm text-gray-500">
+            Nenhum endereço cadastrado.
+          </p>
+
+          <Link
+            href="/perfil/enderecos"
+            onClick={() =>
+              setMenuEnderecoAberto(false)
+            }
+            className="
+              mt-3
+              inline-block
+              text-sm
+              font-semibold
+              text-red-600
+              hover:text-red-700
+            "
+          >
+            Cadastrar endereço
+          </Link>
+
+        </div>
+
+      ) : (
+
+        <div className="max-h-80 overflow-y-auto py-2">
+
+          {enderecos.map((endereco) => {
+
+            const selecionado =
+              enderecoSelecionado?.id_endereco ===
+              endereco.id_endereco;
+
+            return (
+
+              <button
+                key={endereco.id_endereco}
+                type="button"
+                onClick={() =>
+                  selecionarEndereco(endereco)
+                }
+                className={`
+                  flex
+                  w-full
+                  items-start
+                  gap-3
+                  px-4
+                  py-3
+                  text-left
+                  transition
+                  hover:bg-gray-50
+                  ${
+                    selecionado
+                      ? "bg-red-50"
+                      : ""
+                  }
+                `}
+              >
+
+                <MapPin
+                  size={18}
+                  className={`
+                    mt-0.5
+                    shrink-0
+                    ${
+                      selecionado
+                        ? "text-red-600"
+                        : "text-gray-400"
+                    }
+                  `}
+                />
+
+
+<div className="min-w-0 flex-1">
+  <p className="truncate text-sm text-gray-700">
+    <span className="font-semibold text-gray-900">
+      {endereco.apelido || "Endereço"}:
+    </span>{" "}
+    {endereco.logradouro}, {endereco.numero}
+  </p>
+</div>
+
+
+                {selecionado && (
+
+                  <span className="text-sm font-bold text-red-600">
+                    ✓
+                  </span>
+
+                )}
+
+              </button>
+
+            );
+          })}
+
+        </div>
+
+      )}
+
+
+      {/* RODAPÉ */}
+      <div className="border-t border-gray-100 p-2">
+
+        <Link
+          href="/perfil/enderecos"
+          onClick={() =>
+            setMenuEnderecoAberto(false)
+          }
           className="
-            hidden
+            flex
+            w-full
             items-center
+            justify-center
             gap-2
             rounded-lg
-            px-2
-            py-2
+            px-3
+            py-2.5
+            text-sm
+            font-semibold
+            text-red-600
             transition
-            hover:bg-gray-100
-            lg:flex
+            hover:bg-red-50
           "
         >
 
-          <MapPin
-            size={21}
-            className="text-red-600"
-          />
+          <MapPin size={17} />
 
-          <div className="flex flex-col items-start">
+          Gerenciar endereços
 
-            <span className="text-[11px] text-gray-500">
-              Entregar em
-            </span>
+        </Link>
 
-            <strong className="text-xs font-semibold text-gray-800">
-              São Paulo, SP
-            </strong>
+      </div>
 
-          </div>
+    </div>
 
-          <ChevronDown
-            size={16}
-            className="text-gray-500"
-          />
+  )}
 
-        </button>
+</div>
 
 
         {/* PESQUISA */}
