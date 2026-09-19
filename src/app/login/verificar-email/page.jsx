@@ -16,7 +16,8 @@ export default function VerificarEmail() {
 
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
-
+  const tipo = searchParams.get("tipo");
+  
   const [codigo, setCodigo] = useState([
     "",
     "",
@@ -58,7 +59,7 @@ export default function VerificarEmail() {
     }
   };
 
-  const handleSubmit = async (event) => {
+const handleSubmit = async (event) => {
   event.preventDefault();
 
   const codigoDigitado = codigo.join("");
@@ -73,66 +74,118 @@ export default function VerificarEmail() {
     return;
   }
 
+  if (
+    tipo !== "usuario" &&
+    tipo !== "responsavel"
+  ) {
+    setErro("Tipo de acesso não informado.");
+    return;
+  }
+
   try {
     // ==========================================
     // LOGIN INICIADO PELO CELULAR
     // ==========================================
-    // Temos email + celular.
-    // Nesse caso, os dois dados já foram confirmados.
-    // Podemos finalizar o login.
+    //
+    // Nesse caso já temos:
+    // celular confirmado anteriormente
+    // +
+    // email confirmado agora
+    //
+    // Portanto podemos finalizar o login.
+    // ==========================================
 
     if (email && celular) {
-      const response = await fetch(
-        `http://127.0.0.1:8000/usuario/dados-login?celular=${encodeURIComponent(
-          celular
-        )}`
-      );
 
-      if (!response.ok) {
-        setErro("Usuário não encontrado.");
+      // ========================================
+      // USUÁRIO
+      // ========================================
+      if (tipo === "usuario") {
+        const response = await fetch(
+          `http://127.0.0.1:8000/usuario/dados-login?celular=${encodeURIComponent(
+            celular
+          )}`
+        );
+
+        if (!response.ok) {
+          setErro("Usuário não encontrado.");
+          return;
+        }
+
+        const usuario = await response.json();
+
+        localStorage.setItem(
+          "usuarioLogado",
+          JSON.stringify(usuario)
+        );
+
+        router.push("/");
+
         return;
       }
 
-      const usuario = await response.json();
+      // ========================================
+      // RESPONSÁVEL PELO RESTAURANTE
+      // ========================================
+      if (tipo === "responsavel") {
+        const response = await fetch(
+          `http://127.0.0.1:8000/responsavel-restaurante/celular/${encodeURIComponent(
+            celular
+          )}`
+        );
 
-      localStorage.setItem(
-        "usuarioLogado",
-        JSON.stringify(usuario)
-      );
+        if (!response.ok) {
+          setErro(
+            "Responsável pelo restaurante não encontrado."
+          );
+          return;
+        }
 
-      router.push("/");
+        const responsavel =
+          await response.json();
 
-      return;
+        localStorage.setItem(
+          "responsavelLogado",
+          JSON.stringify(responsavel)
+        );
+
+        router.push("/restaurantes");
+
+        return;
+      }
     }
 
     // ==========================================
     // LOGIN INICIADO PELO E-MAIL
     // ==========================================
-    // Temos somente o email.
+    //
+    // O email acabou de ser confirmado.
     // Ainda precisamos confirmar o celular.
+    // ==========================================
 
     if (email && !celular) {
       router.push(
         `/login/confirmar-telefone?email=${encodeURIComponent(
           email
-        )}`
+        )}&tipo=${encodeURIComponent(tipo)}`
       );
 
       return;
     }
 
     // ==========================================
-    // NENHUM DADO INFORMADO
+    // NENHUM E-MAIL
     // ==========================================
 
     setErro("E-mail não informado.");
-
   } catch (error) {
     console.error(error);
-    setErro("Não foi possível continuar o login.");
+
+    setErro(
+      "Não foi possível continuar o login."
+    );
   }
 };
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
       <div className="w-full max-w-md">

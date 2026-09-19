@@ -14,48 +14,98 @@ export default function ConfirmarTelefoneLogin() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
+  const tipo = searchParams.get("tipo");
 
   const [celular, setCelular] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  useEffect(() => {
-    async function buscarTelefone() {
-      if (!email) {
-        setErro("E-mail não informado.");
-        setCarregando(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/telefone?email=${encodeURIComponent(email)}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Telefone não encontrado.");
-        }
-
-        const data = await response.json();
-
-        setCelular(data.numero);
-      } catch (error) {
-        setErro("Não foi possível encontrar o telefone cadastrado.");
-      } finally {
-        setCarregando(false);
-      }
+useEffect(() => {
+  async function buscarTelefone() {
+    if (!email) {
+      setErro("E-mail não informado.");
+      setCarregando(false);
+      return;
     }
 
-    buscarTelefone();
-  }, [email]);
+    if (
+      tipo !== "usuario" &&
+      tipo !== "responsavel"
+    ) {
+      setErro("Tipo de acesso não informado.");
+      setCarregando(false);
+      return;
+    }
 
-  function enviarCodigo() {
-    router.push(
-      `/login/verificar-telefone?email=${encodeURIComponent(
+    try {
+      let url = "";
+
+      // =========================
+      // USUÁRIO
+      // =========================
+      if (tipo === "usuario") {
+        url =
+          `http://127.0.0.1:8000/usuario/telefone?email=${encodeURIComponent(
+            email
+          )}`;
+      }
+
+      // =========================
+      // RESPONSÁVEL
+      // =========================
+      if (tipo === "responsavel") {
+        url =
+        `http://127.0.0.1:8000/responsavel-restaurante/telefone?email=${encodeURIComponent(
         email
-      )}&celular=${encodeURIComponent(celular)}`
-    );
+        )}`;
+        }
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(
+          "Telefone não encontrado."
+        );
+      }
+
+      const data = await response.json();
+
+      // =========================
+      // USUÁRIO
+      // =========================
+      if (tipo === "usuario") {
+        setCelular(data.numero);
+      }
+
+      // =========================
+      // RESPONSÁVEL
+      // =========================
+      if (tipo === "responsavel") {
+      setCelular(data.numero);
+      }
+    } catch (error) {
+      console.error(error);
+
+      setErro(
+        "Não foi possível encontrar o telefone cadastrado."
+      );
+    } finally {
+      setCarregando(false);
+    }
   }
+
+  buscarTelefone();
+}, [email, tipo]);
+
+function enviarCodigo() {
+  router.push(
+    `/login/verificar-telefone?email=${encodeURIComponent(
+      email
+    )}&celular=${encodeURIComponent(
+      celular
+    )}&tipo=${encodeURIComponent(tipo)}`
+  );
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">

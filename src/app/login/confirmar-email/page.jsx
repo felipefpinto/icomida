@@ -17,53 +17,88 @@ export default function ConfirmarEmail() {
   const searchParams = useSearchParams();
 
   const celular = searchParams.get("celular");
+  const tipo = searchParams.get("tipo");
 
   const [email, setEmail] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
 
-  useEffect(() => {
-    async function buscarEmail() {
-      if (!celular) {
-        setErro("Celular não informado.");
-        setCarregando(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/email?celular=${encodeURIComponent(
-            celular
-          )}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Celular não encontrado.");
-        }
-
-        const usuario = await response.json();
-
-        setEmail(usuario.email);
-      } catch (error) {
-        console.error(error);
-        setErro("Não foi possível encontrar o e-mail cadastrado.");
-      } finally {
-        setCarregando(false);
-      }
+useEffect(() => {
+  async function buscarEmail() {
+    if (!celular) {
+      setErro("Celular não informado.");
+      setCarregando(false);
+      return;
     }
 
-    buscarEmail();
-  }, [celular]);
+    if (
+      tipo !== "usuario" &&
+      tipo !== "responsavel"
+    ) {
+      setErro("Tipo de acesso não informado.");
+      setCarregando(false);
+      return;
+    }
 
-  function continuar() {
-    if (!email) return;
+    try {
+      let url = "";
 
-    router.push(
-      `/login/verificar-email?email=${encodeURIComponent(
-        email
-      )}&celular=${encodeURIComponent(celular || "")}`
-    );
+      // =========================
+      // USUÁRIO
+      // =========================
+      if (tipo === "usuario") {
+        url =
+          `http://127.0.0.1:8000/usuario/email?celular=${encodeURIComponent(
+            celular
+          )}`;
+      }
+
+      // =========================
+      // RESPONSÁVEL
+      // =========================
+      if (tipo === "responsavel") {
+  url =
+    `http://127.0.0.1:8000/responsavel-restaurante/email?celular=${encodeURIComponent(
+      celular
+    )}`;
+}
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(
+          "Celular não encontrado."
+        );
+      }
+
+      const dados = await response.json();
+
+      setEmail(dados.email);
+    } catch (error) {
+      console.error(error);
+
+      setErro(
+        "Não foi possível encontrar o e-mail cadastrado."
+      );
+    } finally {
+      setCarregando(false);
+    }
   }
+
+  buscarEmail();
+}, [celular, tipo]);
+
+function continuar() {
+  if (!email) return;
+
+  router.push(
+    `/login/verificar-email?email=${encodeURIComponent(
+      email
+    )}&celular=${encodeURIComponent(
+      celular || ""
+    )}&tipo=${encodeURIComponent(tipo)}`
+  );
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">

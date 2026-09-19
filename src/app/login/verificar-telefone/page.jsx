@@ -15,6 +15,7 @@ export default function VerificarTelefone() {
 
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
+  const tipo = searchParams.get("tipo");
 
   const [codigo, setCodigo] = useState([
     "",
@@ -72,70 +73,107 @@ const handleSubmit = async (event) => {
     return;
   }
 
+  if (
+    tipo !== "usuario" &&
+    tipo !== "responsavel"
+  ) {
+    setErro("Tipo de acesso não informado.");
+    return;
+  }
+
   try {
     // ==========================================
-    // LOGIN POR CELULAR
+    // LOGIN INICIADO PELO CELULAR
     // ==========================================
+    // Ainda não temos o e-mail confirmado.
+    // Primeiro vamos para confirmar-email.
+    // ==========================================
+
     if (!email) {
-  if (!celular) {
-    setErro("Celular não informado.");
-    return;
-  }
+      if (!celular) {
+        setErro("Celular não informado.");
+        return;
+      }
 
-  const response = await fetch(
-    `http://127.0.0.1:8000/usuario/email?celular=${encodeURIComponent(
-      celular
-    )}`
-  );
+      router.push(
+        `/login/confirmar-email?celular=${encodeURIComponent(
+          celular
+        )}&tipo=${encodeURIComponent(tipo)}`
+      );
 
-  if (!response.ok) {
-    setErro("Celular não encontrado.");
-    return;
-  }
-
-  const dados = await response.json();
-
-  if (!dados || !dados.email) {
-    setErro("E-mail não encontrado.");
-    return;
-  }
-
-  // Vai para a página ConfirmarEmail
-  // passando somente o celular.
-  router.push(
-    `/login/confirmar-email?celular=${encodeURIComponent(
-      celular
-    )}`
-  );
-
-  return;
-}
-
-    // ==========================================
-    // LOGIN POR E-MAIL
-    // ==========================================
-
-    const response = await fetch(
-      `http://127.0.0.1:8000/usuario/dados-login?email=${encodeURIComponent(
-        email
-      )}`
-    );
-
-    if (!response.ok) {
-      throw new Error("Usuário não encontrado");
+      return;
     }
 
-    const usuario = await response.json();
+    // ==========================================
+    // LOGIN INICIADO PELO E-MAIL
+    // ==========================================
+    // Já temos:
+    // email confirmado
+    // +
+    // celular confirmado agora
+    //
+    // Podemos finalizar o login.
+    // ==========================================
 
-    localStorage.setItem(
-      "usuarioLogado",
-      JSON.stringify(usuario)
-    );
+    if (tipo === "usuario") {
+      const response = await fetch(
+        `http://127.0.0.1:8000/usuario/dados-login?email=${encodeURIComponent(
+          email
+        )}`
+      );
 
-    router.push("/");
+      if (!response.ok) {
+        setErro("Usuário não encontrado.");
+        return;
+      }
+
+      const usuario = await response.json();
+
+      localStorage.setItem(
+        "usuarioLogado",
+        JSON.stringify(usuario)
+      );
+
+      router.push("/");
+
+      return;
+    }
+
+    // ==========================================
+    // RESPONSÁVEL PELO RESTAURANTE
+    // ==========================================
+
+    if (tipo === "responsavel") {
+      const response = await fetch(
+        `http://127.0.0.1:8000/responsavel-restaurante/email/${encodeURIComponent(
+          email
+        )}`
+      );
+
+      if (!response.ok) {
+        setErro(
+          "Responsável pelo restaurante não encontrado."
+        );
+        return;
+      }
+
+      const responsavel = await response.json();
+
+      localStorage.setItem(
+        "responsavelLogado",
+        JSON.stringify(responsavel)
+      );
+
+      router.push("/restaurantes");
+
+      return;
+    }
   } catch (error) {
     console.error(error);
-    setErro("Não foi possível realizar o login.");
+
+    setErro(
+      "Não foi possível realizar o login."
+    );
   }
 };
 

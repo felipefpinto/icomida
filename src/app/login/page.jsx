@@ -20,74 +20,204 @@ export default function Login() {
   const [phone, setPhone] = useState("");
 
    async function handleContinue() {
-    try {
+  try {
+    // =========================
+    // LOGIN POR E-MAIL
+    // =========================
+    if (method === "email") {
+      const emailFormatado = email.trim();
+
+      // Verifica na tabela Usuario
+      const responseUsuario = await fetch(
+        `http://127.0.0.1:8000/usuario/buscaremail?email=${encodeURIComponent(
+          emailFormatado
+        )}`
+      );
+
+      // Verifica na tabela ResponsavelRestaurante
+      const responseResponsavel = await fetch(
+        `http://127.0.0.1:8000/responsavel-restaurante/email/${encodeURIComponent(
+          emailFormatado
+        )}`
+      );
+
+      console.log(
+        "Status Usuario:",
+        responseUsuario.status
+      );
+
+      console.log(
+        "Status Responsável:",
+        responseResponsavel.status
+      );
+
+      const usuarioExiste =
+        responseUsuario.status === 200;
+
+      const responsavelExiste =
+        responseResponsavel.status === 200;
+
       // =========================
-      // LOGIN POR E-MAIL
+      // NÃO EXISTE EM NENHUMA
       // =========================
-      if (method === "email") {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/buscaremail?email=${encodeURIComponent(email)}`
+
+      if (!usuarioExiste && !responsavelExiste) {
+        router.push(
+          `/cadastro?email=${encodeURIComponent(
+            emailFormatado
+          )}`
         );
 
-        console.log("Status da resposta:", response.status);
-
-        if (response.status === 200) {
-          router.push(
-            `/login/verificar-email?email=${encodeURIComponent(email)}`
-          );
-          return;
-        }
-
-        if (response.status === 404) {
-          router.push(
-            `/cadastro?email=${encodeURIComponent(email)}`
-          );
-          return;
-        }
-
-        throw new Error("Erro ao verificar e-mail");
+        return;
       }
 
       // =========================
-      // LOGIN POR CELULAR
+      // EXISTE SOMENTE USUÁRIO
       // =========================
-      if (method === "phone") {
-        const celularFormatado = phone.replace(/\D/g, "");
 
-        console.log("Celular enviado:", celularFormatado);
+      if (usuarioExiste && !responsavelExiste) {
+        router.push(
+          `/login/verificar-email?email=${encodeURIComponent(
+            emailFormatado
+          )}&tipo=usuario`
+        );
 
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/buscarcelular?celular=${encodeURIComponent(
+        return;
+      }
+
+      // =========================
+      // EXISTE SOMENTE RESPONSÁVEL
+      // =========================
+
+      if (!usuarioExiste && responsavelExiste) {
+        router.push(
+          `/login/verificar-email?email=${encodeURIComponent(
+            emailFormatado
+          )}&tipo=responsavel`
+        );
+
+        return;
+      }
+
+      // =========================
+      // EXISTE NAS DUAS TABELAS
+      // =========================
+
+      if (usuarioExiste && responsavelExiste) {
+        router.push(
+          `/login/selecionar-tipo?email=${encodeURIComponent(
+            emailFormatado
+          )}`
+        );
+
+        return;
+      }
+    }
+
+    // =========================
+    // LOGIN POR CELULAR
+    // =========================
+    if (method === "phone") {
+      const celularFormatado = phone.replace(/\D/g, "");
+
+      console.log(
+        "Celular enviado:",
+        celularFormatado
+      );
+
+      // Verifica na tabela Usuario
+      const responseUsuario = await fetch(
+        `http://127.0.0.1:8000/usuario/buscarcelular?celular=${encodeURIComponent(
+          celularFormatado
+        )}`
+      );
+
+      // Verifica na tabela ResponsavelRestaurante
+      const responseResponsavel = await fetch(
+        `http://127.0.0.1:8000/responsavel-restaurante/celular/${encodeURIComponent(
+          celularFormatado
+        )}`
+      );
+
+      console.log(
+        "Status Usuario:",
+        responseUsuario.status
+      );
+
+      console.log(
+        "Status Responsável:",
+        responseResponsavel.status
+      );
+
+      const usuarioExiste =
+        responseUsuario.status === 200;
+
+      const responsavelExiste =
+        responseResponsavel.status === 200;
+
+      // =========================
+      // NÃO EXISTE EM NENHUMA
+      // =========================
+
+      if (!usuarioExiste && !responsavelExiste) {
+        router.push(
+          `/cadastro?celular=${encodeURIComponent(
             celularFormatado
           )}`
         );
 
-        console.log("Status da resposta:", response.status);
-
-        if (response.status === 200) {
-          router.push(
-            `/login/verificar-telefone?celular=${encodeURIComponent(
-              celularFormatado
-            )}`
-          );
-          return;
-        }
-
-        if (response.status === 404) {
-          router.push(
-            `/cadastro?celular=${encodeURIComponent(
-              celularFormatado
-            )}`
-          );
-          return;
-        }
-
-        throw new Error("Erro ao verificar celular");
+        return;
       }
-    } catch (error) {
-      console.error(error);
+
+      // =========================
+      // EXISTE SOMENTE USUÁRIO
+      // =========================
+
+      if (usuarioExiste && !responsavelExiste) {
+        router.push(
+          `/login/verificar-telefone?celular=${encodeURIComponent(
+            celularFormatado
+          )}&tipo=usuario`
+        );
+
+        return;
+      }
+
+      // =========================
+      // EXISTE SOMENTE RESPONSÁVEL
+      // =========================
+
+      if (!usuarioExiste && responsavelExiste) {
+        router.push(
+          `/login/verificar-telefone?celular=${encodeURIComponent(
+            celularFormatado
+          )}&tipo=responsavel`
+        );
+
+        return;
+      }
+
+      // =========================
+      // EXISTE NAS DUAS TABELAS
+      // =========================
+
+      if (usuarioExiste && responsavelExiste) {
+        router.push(
+          `/login/selecionar-tipo?celular=${encodeURIComponent(
+            celularFormatado
+          )}`
+        );
+
+        return;
+      }
     }
+  } catch (error) {
+    console.error(
+      "Erro ao verificar login:",
+      error
+    );
   }
+}
 
   
   async function handleGoogleLogin() {
