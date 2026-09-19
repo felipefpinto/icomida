@@ -165,7 +165,7 @@ export default function CanaisVenda() {
           {/* TÍTULO */}
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">
-              Canais de venda
+              Tipos de Entrega
             </h1>
 
             <p className="mt-2 text-sm leading-relaxed text-gray-500">
