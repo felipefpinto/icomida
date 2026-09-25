@@ -19,6 +19,59 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
+
+  async function enviarCodigoEmail(email) {
+  const response = await fetch(
+    "http://127.0.0.1:8000/verificacao/email/enviar",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: email.trim(),
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.sucesso) {
+    throw new Error(
+      data.mensagem ||
+        "Não foi possível enviar o código por e-mail."
+    );
+  }
+
+  return data;
+}
+
+async function enviarCodigoTelefone(celular) {
+  const response = await fetch(
+    "http://127.0.0.1:8000/verificacao/telefone/enviar",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        celular: celular.replace(/\D/g, ""),
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.sucesso) {
+    throw new Error(
+      data.mensagem ||
+        "Não foi possível enviar o código por SMS."
+    );
+  }
+
+  return data;
+}
+
    async function handleContinue() {
   try {
     // =========================
@@ -76,28 +129,32 @@ export default function Login() {
       // =========================
 
       if (usuarioExiste && !responsavelExiste) {
-        router.push(
-          `/login/verificar-email?email=${encodeURIComponent(
-            emailFormatado
-          )}&tipo=usuario`
-        );
+        await enviarCodigoEmail(emailFormatado);
 
-        return;
-      }
+  router.push(
+    `/login/verificar-email?email=${encodeURIComponent(
+      emailFormatado
+    )}&tipo=usuario`
+  );
+
+  return;
+}
 
       // =========================
       // EXISTE SOMENTE RESPONSÁVEL
       // =========================
 
       if (!usuarioExiste && responsavelExiste) {
-        router.push(
-          `/login/verificar-email?email=${encodeURIComponent(
-            emailFormatado
-          )}&tipo=responsavel`
-        );
+  await enviarCodigoEmail(emailFormatado);
 
-        return;
-      }
+  router.push(
+    `/login/verificar-email?email=${encodeURIComponent(
+      emailFormatado
+    )}&tipo=responsavel`
+  );
+
+  return;
+}
 
       // =========================
       // EXISTE NAS DUAS TABELAS
@@ -174,6 +231,7 @@ export default function Login() {
       // =========================
 
       if (usuarioExiste && !responsavelExiste) {
+        await enviarCodigoTelefone(celularFormatado);
         router.push(
           `/login/verificar-telefone?celular=${encodeURIComponent(
             celularFormatado
@@ -188,6 +246,7 @@ export default function Login() {
       // =========================
 
       if (!usuarioExiste && responsavelExiste) {
+        await enviarCodigoTelefone(celularFormatado);
         router.push(
           `/login/verificar-telefone?celular=${encodeURIComponent(
             celularFormatado

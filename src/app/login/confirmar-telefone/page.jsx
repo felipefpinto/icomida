@@ -19,6 +19,7 @@ export default function ConfirmarTelefoneLogin() {
   const [celular, setCelular] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
 useEffect(() => {
   async function buscarTelefone() {
@@ -97,14 +98,66 @@ useEffect(() => {
   buscarTelefone();
 }, [email, tipo]);
 
-function enviarCodigo() {
-  router.push(
-    `/login/verificar-telefone?email=${encodeURIComponent(
-      email
-    )}&celular=${encodeURIComponent(
-      celular
-    )}&tipo=${encodeURIComponent(tipo)}`
-  );
+async function enviarCodigo() {
+  if (!email) {
+    setErro("E-mail não informado.");
+    return;
+  }
+
+  if (
+    tipo !== "usuario" &&
+    tipo !== "responsavel"
+  ) {
+    setErro("Tipo de acesso não informado.");
+    return;
+  }
+
+  setErro("");
+  setEnviando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/enviar-por-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          tipo: tipo,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          data.detail ||
+          "Não foi possível enviar o código."
+      );
+      return;
+    }
+
+    router.push(
+      `/login/verificar-telefone?email=${encodeURIComponent(
+        email
+      )}&tipo=${encodeURIComponent(tipo)}`
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao enviar código:",
+      error
+    );
+
+    setErro(
+      "Não foi possível enviar o código."
+    );
+  } finally {
+    setEnviando(false);
+  }
 }
 
   return (
@@ -159,6 +212,7 @@ function enviarCodigo() {
             <button
               type="button"
               onClick={enviarCodigo}
+              disabled={enviando}
               className="
                 mt-8
                 flex
@@ -176,8 +230,14 @@ function enviarCodigo() {
                 hover:bg-red-700
               "
             >
-              Enviar código
-              <ArrowRight size={18} />
+              {enviando ? (
+              "Enviando código..."
+            ) : (
+              <>
+                Enviar código
+                <ArrowRight size={18} />
+              </>
+            )}
             </button>
           )}
 

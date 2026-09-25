@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 import {
   ArrowLeft,
@@ -16,46 +17,109 @@ export default function SelecionarTipo() {
 
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
 
-  function continuarComoUsuario() {
+async function continuar(tipo) {
+  if (!email && !celular) {
+    setErro("E-mail ou celular não informado.");
+    return;
+  }
+
+  setErro("");
+  setCarregando(true);
+
+  try {
+    // ==========================================
+    // LOGIN INICIADO PELO E-MAIL
+    // ==========================================
     if (email) {
+      const response = await fetch(
+        "http://127.0.0.1:8000/verificacao/email/enviar",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.sucesso) {
+        setErro(
+          data.mensagem ||
+            "Não foi possível enviar o código por e-mail."
+        );
+        return;
+      }
+
       router.push(
         `/login/verificar-email?email=${encodeURIComponent(
           email
-        )}&tipo=usuario`
+        )}&tipo=${encodeURIComponent(tipo)}`
       );
+
       return;
     }
 
+    // ==========================================
+    // LOGIN INICIADO PELO CELULAR
+    // ==========================================
     if (celular) {
+      const response = await fetch(
+        "http://127.0.0.1:8000/verificacao/telefone/enviar",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            celular: celular.replace(/\D/g, ""),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.sucesso) {
+        setErro(
+          data.mensagem ||
+            "Não foi possível enviar o código por SMS."
+        );
+        return;
+      }
+
       router.push(
         `/login/verificar-telefone?celular=${encodeURIComponent(
           celular
-        )}&tipo=usuario`
+        )}&tipo=${encodeURIComponent(tipo)}`
       );
-      return;
     }
-  }
+  } catch (error) {
+    console.error(
+      "Erro ao enviar código:",
+      error
+    );
 
-  function continuarComoResponsavel() {
-    if (email) {
-      router.push(
-        `/login/verificar-email?email=${encodeURIComponent(
-          email
-        )}&tipo=responsavel`
-      );
-      return;
-    }
-
-    if (celular) {
-      router.push(
-        `/login/verificar-telefone?celular=${encodeURIComponent(
-          celular
-        )}&tipo=responsavel`
-      );
-      return;
-    }
+    setErro(
+      "Não foi possível enviar o código de verificação."
+    );
+  } finally {
+    setCarregando(false);
   }
+}
+
+  async function continuarComoResponsavel() {
+  await continuar("responsavel");
+}
+
+  async function continuarComoResponsavel() {
+  await continuar("responsavel");
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -117,12 +181,21 @@ export default function SelecionarTipo() {
 
           </div>
 
+          {erro && (
+          <p className="mb-4 text-center text-sm text-red-600">
+            {erro}
+          </p>
+            )}
+
           {/* USUÁRIO */}
 
           <button
             type="button"
             onClick={continuarComoUsuario}
+            disabled={carregando}
             className="
+              disabled:cursor-not-allowed
+              disabled:opacity-50
               mb-4
               flex
               w-full
@@ -178,7 +251,10 @@ export default function SelecionarTipo() {
           <button
             type="button"
             onClick={continuarComoResponsavel}
+            disabled={carregando}
             className="
+            disabled:cursor-not-allowed
+disabled:opacity-50
               flex
               w-full
               items-center

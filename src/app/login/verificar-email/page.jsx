@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -17,6 +17,7 @@ export default function VerificarEmail() {
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
   const tipo = searchParams.get("tipo");
+  const [emailMascarado, setEmailMascarado] = useState("");
   
   const [codigo, setCodigo] = useState([
     "",
@@ -28,11 +29,64 @@ export default function VerificarEmail() {
   ]);
 
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
   const inputsRef = useRef([]);
 
   // Código temporário para testes
-  const codigoCorreto = "123456";
+  //const codigoCorreto = "123456";
+
+useEffect(() => {
+  async function buscarEmailMascarado() {
+    // Se temos o e-mail real, não precisamos buscar.
+    if (email) {
+      return;
+    }
+
+    // Essa busca acontece quando o login começou pelo celular.
+    if (!celular) {
+      return;
+    }
+
+    if (
+      tipo !== "usuario" &&
+      tipo !== "responsavel"
+    ) {
+      return;
+    }
+
+    try {
+      let url;
+
+      if (tipo === "usuario") {
+        url = `http://127.0.0.1:8000/usuario/email?celular=${encodeURIComponent(
+          celular
+        )}`;
+      } else {
+        url = `http://127.0.0.1:8000/responsavel-restaurante/email?celular=${encodeURIComponent(
+          celular
+        )}`;
+      }
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+
+      setEmailMascarado(data.email);
+    } catch (error) {
+      console.error(
+        "Erro ao buscar e-mail mascarado:",
+        error
+      );
+    }
+  }
+
+  buscarEmailMascarado();
+}, [email, celular, tipo]);
 
   const handleChange = (value, index) => {
     if (!/^\d*$/.test(value)) return;
@@ -69,11 +123,6 @@ const handleSubmit = async (event) => {
     return;
   }
 
-  if (codigoDigitado !== codigoCorreto) {
-    setErro("Código incorreto. Tente novamente.");
-    return;
-  }
-
   if (
     tipo !== "usuario" &&
     tipo !== "responsavel"
@@ -82,24 +131,78 @@ const handleSubmit = async (event) => {
     return;
   }
 
+  if (!email && !celular) {
+    setErro("Não foi possível identificar o cadastro.");
+    return;
+  }
+
+  setErro("");
+  setCarregando(true);
+
   try {
-    // ==========================================
-    // LOGIN INICIADO PELO CELULAR
-    // ==========================================
-    //
-    // Nesse caso já temos:
-    // celular confirmado anteriormente
-    // +
-    // email confirmado agora
-    //
-    // Portanto podemos finalizar o login.
-    // ==========================================
+    let responseVerificacao;
 
-    if (email && celular) {
+    // ==========================================
+    // LOGIN COMEÇOU PELO CELULAR
+    // Backend encontra o e-mail verdadeiro.
+    // ==========================================
+    if (celular && !email) {
+      responseVerificacao = await fetch(
+        "http://127.0.0.1:8000/verificacao/email/verificar-por-celular",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            celular: celular.replace(/\D/g, ""),
+            codigo: codigoDigitado,
+            tipo: tipo,
+          }),
+        }
+      );
+    }
 
-      // ========================================
-      // USUÁRIO
-      // ========================================
+    // ==========================================
+    // LOGIN COMEÇOU PELO E-MAIL
+    // Temos o e-mail verdadeiro.
+    // ==========================================
+    else {
+      responseVerificacao = await fetch(
+        "http://127.0.0.1:8000/verificacao/email/verificar",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            codigo: codigoDigitado,
+          }),
+        }
+      );
+    }
+
+    const dataVerificacao =
+      await responseVerificacao.json();
+
+    if (
+      !responseVerificacao.ok ||
+      !dataVerificacao.sucesso
+    ) {
+      setErro(
+        dataVerificacao.mensagem ||
+          dataVerificacao.detail ||
+          "Código inválido ou expirado."
+      );
+      return;
+    }
+
+    // ==========================================
+    // LOGIN COMEÇOU PELO CELULAR
+    // Telefone + e-mail já confirmados.
+    // ==========================================
+    if (celular && !email) {
       if (tipo === "usuario") {
         const response = await fetch(
           `http://127.0.0.1:8000/usuario/dados-login?celular=${encodeURIComponent(
@@ -120,13 +223,9 @@ const handleSubmit = async (event) => {
         );
 
         router.push("/");
-
         return;
       }
 
-      // ========================================
-      // RESPONSÁVEL PELO RESTAURANTE
-      // ========================================
       if (tipo === "responsavel") {
         const response = await fetch(
           `http://127.0.0.1:8000/responsavel-restaurante/celular/${encodeURIComponent(
@@ -150,19 +249,15 @@ const handleSubmit = async (event) => {
         );
 
         router.push("/restaurantes");
-
         return;
       }
     }
 
     // ==========================================
-    // LOGIN INICIADO PELO E-MAIL
+    // LOGIN COMEÇOU PELO E-MAIL
+    // E-mail confirmado.
+    // Agora confirma telefone.
     // ==========================================
-    //
-    // O email acabou de ser confirmado.
-    // Ainda precisamos confirmar o celular.
-    // ==========================================
-
     if (email && !celular) {
       router.push(
         `/login/confirmar-telefone?email=${encodeURIComponent(
@@ -172,17 +267,96 @@ const handleSubmit = async (event) => {
 
       return;
     }
-
-    // ==========================================
-    // NENHUM E-MAIL
-    // ==========================================
-
-    setErro("E-mail não informado.");
   } catch (error) {
     console.error(error);
 
     setErro(
       "Não foi possível continuar o login."
+    );
+  } finally {
+    setCarregando(false);
+  }
+};
+
+const reenviarCodigo = async () => {
+  if (
+    tipo !== "usuario" &&
+    tipo !== "responsavel"
+  ) {
+    setErro("Tipo de acesso não informado.");
+    return;
+  }
+
+  if (!email && !celular) {
+    setErro("Não foi possível identificar o cadastro.");
+    return;
+  }
+
+  try {
+    setErro("");
+
+    let response;
+
+    // ==========================================
+    // LOGIN COMEÇOU PELO CELULAR
+    // Backend encontra o e-mail verdadeiro.
+    // ==========================================
+    if (celular && !email) {
+      response = await fetch(
+        "http://127.0.0.1:8000/verificacao/email/enviar-por-celular",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            celular: celular.replace(/\D/g, ""),
+            tipo: tipo,
+          }),
+        }
+      );
+    }
+
+    // ==========================================
+    // LOGIN COMEÇOU PELO E-MAIL
+    // Já temos o e-mail verdadeiro.
+    // ==========================================
+    else {
+      response = await fetch(
+        "http://127.0.0.1:8000/verificacao/email/enviar",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+          }),
+        }
+      );
+    }
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          data.detail ||
+          "Não foi possível reenviar o código."
+      );
+      return;
+    }
+
+    setCodigo(["", "", "", "", "", ""]);
+    inputsRef.current[0]?.focus();
+  } catch (error) {
+    console.error(
+      "Erro ao reenviar código:",
+      error
+    );
+
+    setErro(
+      "Não foi possível reenviar o código."
     );
   }
 };
@@ -235,8 +409,8 @@ const handleSubmit = async (event) => {
             </h1>
 
             <p className="mt-1 truncate font-medium text-gray-900">
-              {email || "E-mail não informado"}
-            </p>
+            {email || emailMascarado || "E-mail cadastrado"}
+          </p>
           </div>
 
           {/* CÓDIGO */}
@@ -310,8 +484,14 @@ const handleSubmit = async (event) => {
                 hover:bg-red-700
               "
             >
-              Confirmar código
-              <ArrowRight size={18} />
+              {carregando ? (
+              "Verificando..."
+            ) : (
+              <>
+                Confirmar código
+                <ArrowRight size={18} />
+              </>
+            )}
             </button>
           </form>
 
@@ -323,6 +503,7 @@ const handleSubmit = async (event) => {
 
             <button
               type="button"
+              onClick={reenviarCodigo}
               className="
                 mt-2
                 text-sm

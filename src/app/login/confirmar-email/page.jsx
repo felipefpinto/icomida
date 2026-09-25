@@ -22,6 +22,7 @@ export default function ConfirmarEmail() {
   const [email, setEmail] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [enviando, setEnviando] = useState(false);
 
 useEffect(() => {
   async function buscarEmail() {
@@ -88,16 +89,66 @@ useEffect(() => {
   buscarEmail();
 }, [celular, tipo]);
 
-function continuar() {
-  if (!email) return;
+async function continuar() {
+  if (!celular) {
+    setErro("Celular não informado.");
+    return;
+  }
 
-  router.push(
-    `/login/verificar-email?email=${encodeURIComponent(
-      email
-    )}&celular=${encodeURIComponent(
-      celular || ""
-    )}&tipo=${encodeURIComponent(tipo)}`
-  );
+  if (
+    tipo !== "usuario" &&
+    tipo !== "responsavel"
+  ) {
+    setErro("Tipo de acesso não informado.");
+    return;
+  }
+
+  setErro("");
+  setEnviando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/enviar-por-celular",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celular.replace(/\D/g, ""),
+          tipo: tipo,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          data.detail ||
+          "Não foi possível enviar o código."
+      );
+      return;
+    }
+
+    router.push(
+      `/login/verificar-email?celular=${encodeURIComponent(
+        celular
+      )}&tipo=${encodeURIComponent(tipo)}`
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao enviar código por e-mail:",
+      error
+    );
+
+    setErro(
+      "Não foi possível enviar o código."
+    );
+  } finally {
+    setEnviando(false);
+  }
 }
 
   return (
@@ -204,6 +255,7 @@ function continuar() {
               <button
                 type="button"
                 onClick={continuar}
+                disabled={enviando}
                 className="
                   mt-6
                   flex
@@ -221,8 +273,14 @@ function continuar() {
                   hover:bg-red-700
                 "
               >
-                Confirmar e-mail
-                <ArrowRight size={18} />
+                {enviando ? (
+                "Enviando código..."
+              ) : (
+                <>
+                  Confirmar e-mail
+                  <ArrowRight size={18} />
+                </>
+              )}
               </button>
             </>
           )}
