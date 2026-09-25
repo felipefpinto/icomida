@@ -1,16 +1,15 @@
 "use client";
 
-import Link from "next/link";
+import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-
+import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  User,
-  Store,
+  Phone,
 } from "lucide-react";
 
-export default function Cadastro() {
+export default function VerificarTelefone() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -18,65 +17,178 @@ export default function Cadastro() {
   const celular = searchParams.get("celular");
   const origem = searchParams.get("origem");
 
-  function cadastrarUsuario() {
-    // ==========================================
-    // CADASTRO INICIADO PELO GOOGLE
-    // ==========================================
-    if (origem === "google" && email) {
-      router.push(
-        `/cadastro/usuario/telefone?email=${encodeURIComponent(
-          email
-        )}&origem=google`
+  const [codigo, setCodigo] = useState([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
+
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [sucesso, setSucesso] = useState("");
+
+  const inputsRef = useRef([]);
+
+  // Código temporário para testes
+  //const codigoCorreto = "123456";
+
+  const handleChange = (value, index) => {
+    if (!/^\d*$/.test(value)) return;
+
+    const novoCodigo = [...codigo];
+
+    novoCodigo[index] = value.slice(-1);
+
+    setCodigo(novoCodigo);
+    setErro("");
+
+    if (value && index < 5) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (event, index) => {
+    if (
+      event.key === "Backspace" &&
+      !codigo[index] &&
+      index > 0
+    ) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+const handleSubmit = async (event) => {
+  event.preventDefault();
+
+  const codigoDigitado = codigo.join("");
+
+  if (codigoDigitado.length !== 6) {
+    setErro("Digite o código completo.");
+    return;
+  }
+
+  if (!celular) {
+    setErro("Celular não informado.");
+    return;
+  }
+
+  setErro("");
+  setSucesso("");
+  setCarregando(true);
+
+  try {
+    const celularNumeros = celular.replace(/\D/g, "");
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/verificar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celularNumeros,
+          codigo: codigoDigitado,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem || "Código incorreto. Tente novamente."
       );
       return;
     }
 
-    // ==========================================
-    // CADASTRO INICIADO POR E-MAIL
-    // ==========================================
-    if (email) {
-      router.push(
-        `/cadastro/usuario/confirmar-email?email=${encodeURIComponent(
-          email
-        )}`
-      );
-      return;
-    }
+    // Código validado pelo backend
 
-    // ==========================================
-    // CADASTRO INICIADO POR CELULAR
-    // ==========================================
-    if (celular) {
+    // Se NÃO possui e-mail, vai para cadastro de e-mail
+    if (!email) {
       router.push(
-        `/cadastro/usuario/confirmar-telefone?celular=${encodeURIComponent(
+        `/cadastro/usuario/email?celular=${encodeURIComponent(
           celular
         )}`
       );
+
       return;
     }
+
+    // Se possui celular + e-mail, vai para os dados finais
+    router.push(
+      `/cadastro/usuario/dados?email=${encodeURIComponent(
+        email
+      )}&celular=${encodeURIComponent(
+        celular
+      )}&origem=${encodeURIComponent(
+        origem || ""
+      )}`
+    );
+  } catch (error) {
+    console.error("Erro ao verificar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setCarregando(false);
+  }
+};
+
+const reenviarCodigo = async () => {
+  if (!celular || reenviando) {
+    return;
   }
 
-  function cadastrarRestaurante() {
-    // Cadastro de restaurante por e-mail
-    if (email) {
-      router.push(
-        `/cadastro/restaurante/confirmar-email?email=${encodeURIComponent(
-          email
-        )}`
+  setErro("");
+  setSucesso("");
+  setReenviando(true);
+
+  try {
+    const celularNumeros = celular.replace(/\D/g, "");
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celularNumeros,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem || "Não foi possível reenviar o código."
       );
       return;
     }
 
-    // Cadastro de restaurante por celular
-    if (celular) {
-      router.push(
-        `/cadastro/restaurante/confirmar-telefone?celular=${encodeURIComponent(
-          celular
-        )}`
-      );
-      return;
-    }
+    setCodigo(["", "", "", "", "", ""]);
+
+    setSucesso("Código reenviado com sucesso.");
+
+    inputsRef.current[0]?.focus();
+  } catch (error) {
+    console.error("Erro ao reenviar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setReenviando(false);
   }
+};
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -84,7 +196,9 @@ export default function Cadastro() {
 
         {/* VOLTAR */}
         <Link
-          href="/login"
+          href={`/cadastro/usuario/confirmar-telefone?celular=${encodeURIComponent(
+          celular || ""
+          )}`}
           className="
             mb-6
             inline-flex
@@ -100,137 +214,172 @@ export default function Cadastro() {
           Voltar
         </Link>
 
-        {/* CARD */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
 
-          {/* CABEÇALHO */}
-          <div className="mb-8 text-center">
-            <div className="mb-4 text-4xl">
-              🍔
+          {/* ÍCONE */}
+          <div className="mb-6 flex justify-center">
+            <div
+              className="
+                flex
+                h-16
+                w-16
+                items-center
+                justify-center
+                rounded-2xl
+                bg-red-50
+                text-red-600
+              "
+            >
+              <Phone size={30} />
             </div>
-
-            <h1 className="text-2xl font-bold text-gray-900">
-              Como você deseja se cadastrar?
-            </h1>
-
-            <p className="mt-2 text-sm text-gray-500">
-              Escolha uma opção para continuar
-            </p>
           </div>
 
-          {/* CADASTRO DE USUÁRIO */}
-          <button
-            type="button"
-            onClick={cadastrarUsuario}
-            className="
-              mb-4
-              flex
-              w-full
-              items-center
-              gap-4
-              rounded-xl
-              border
-              border-gray-200
-              p-5
-              text-left
-              transition
-              hover:border-red-500
-              hover:bg-red-50
-            "
-          >
-            <div
+          {/* TÍTULO */}
+          <div className="text-center">
+
+            <h1 className="text-2xl font-bold text-gray-900">
+              Verifique seu telefone
+            </h1>
+
+            <p className="mt-2 text-sm leading-relaxed text-gray-500">
+              Enviamos um código de 6 dígitos para:
+            </p>
+
+            <p className="mt-1 font-medium text-gray-900">
+              {celular
+                ? celular.replace(
+                    /(\d{2})(\d{5})(\d{4})/,
+                    "($1) $2-$3"
+                  )
+                : "Celular não informado"}
+            </p>
+
+          </div>
+
+          {/* CÓDIGO */}
+          <form onSubmit={handleSubmit}>
+
+            <div className="mt-8 flex justify-center gap-2 sm:gap-3">
+
+              {codigo.map((numero, index) => (
+                <input
+                  key={index}
+                  ref={(element) => {
+                    inputsRef.current[index] = element;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={numero}
+                  onChange={(event) =>
+                    handleChange(
+                      event.target.value,
+                      index
+                    )
+                  }
+                  onKeyDown={(event) =>
+                    handleKeyDown(event, index)
+                  }
+                  className="
+                    h-14
+                    w-11
+                    rounded-lg
+                    border
+                    border-gray-300
+                    bg-gray-50
+                    text-center
+                    text-xl
+                    font-semibold
+                    text-gray-900
+                    outline-none
+                    transition
+                    focus:border-red-600
+                    focus:ring-2
+                    focus:ring-red-100
+                    sm:w-12
+                  "
+                />
+              ))}
+
+            </div>
+
+            {/* ERRO */}
+            {/* MENSAGENS */}
+              {erro && (
+                <p className="mt-4 text-center text-sm text-red-600">
+                  {erro}
+                </p>
+              )}
+
+              {sucesso && (
+                <p className="mt-4 text-center text-sm text-green-600">
+                  {sucesso}
+                </p>
+              )}
+
+
+
+            {/* CONFIRMAR */}
+            <button
+              type="submit"
+              disabled={carregando}
               className="
+                mt-6
                 flex
                 h-12
-                w-12
+                w-full
                 items-center
                 justify-center
-                rounded-xl
-                bg-red-50
-                text-red-600
+                gap-2
+                rounded-lg
+                bg-red-600
+                text-sm
+                font-semibold
+                text-white
+                transition
+                hover:bg-red-700
+                disabled:cursor-not-allowed
+                disabled:bg-gray-300
               "
             >
-              <User size={24} />
-            </div>
+              {carregando ? (
+                "Verificando..."
+              ) : (
+                <>
+                  Confirmar código
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
 
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-900">
-                Quero pedir comida
-              </h2>
+          </form>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Crie sua conta para pedir nos seus restaurantes favoritos.
-              </p>
-            </div>
+          {/* REENVIO */}
+          <div className="mt-6 text-center">
 
-            <ArrowRight
-              size={20}
-              className="text-gray-400"
-            />
-          </button>
+            <p className="text-sm text-gray-500">
+              Não recebeu o código?
+            </p>
 
-          {/* CADASTRO DE RESTAURANTE */}
-          <button
-            type="button"
-            onClick={cadastrarRestaurante}
-            className="
-              flex
-              w-full
-              items-center
-              gap-4
-              rounded-xl
-              border
-              border-gray-200
-              p-5
-              text-left
-              transition
-              hover:border-red-500
-              hover:bg-red-50
-            "
-          >
-            <div
+            <button
+              type="button"
+              onClick={reenviarCodigo}
+              disabled={reenviando}
               className="
-                flex
-                h-12
-                w-12
-                items-center
-                justify-center
-                rounded-xl
-                bg-red-50
+                mt-2
+                text-sm
+                font-medium
                 text-red-600
+                transition
+                hover:text-red-700
+                disabled:cursor-not-allowed
+                disabled:text-gray-400
               "
             >
-              <Store size={24} />
-            </div>
+              {reenviando ? "Reenviando..." : "Reenviar código"}
+            </button>
 
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-900">
-                Quero cadastrar meu restaurante
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Cadastre seu restaurante e comece a vender seus produtos.
-              </p>
-            </div>
-
-            <ArrowRight
-              size={20}
-              className="text-gray-400"
-            />
-          </button>
-
-          {/* INFORMAÇÃO DO CADASTRO */}
-          {email && (
-            <p className="mt-6 text-center text-xs text-gray-400">
-              E-mail informado: {email}
-            </p>
-          )}
-
-          {celular && (
-            <p className="mt-6 text-center text-xs text-gray-400">
-              Celular informado: {celular}
-            </p>
-          )}
+          </div>
 
         </div>
       </div>

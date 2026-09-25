@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -15,14 +16,60 @@ export default function CadastroRestauranteConfirmarEmail() {
 
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
 
-  function confirmarEmail() {
+async function confirmarEmail() {
+  if (!email) {
+    setErro("E-mail não informado.");
+    return;
+  }
+
+  setErro("");
+  setCarregando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Não foi possível enviar o código por e-mail."
+      );
+      return;
+    }
+
     router.push(
       `/cadastro/restaurante/verificar-email?email=${encodeURIComponent(
-        email || ""
+        email
       )}&celular=${encodeURIComponent(celular || "")}`
     );
+  } catch (error) {
+    console.error(
+      "Erro ao enviar código por e-mail:",
+      error
+    );
+
+    setErro(
+      "Não foi possível enviar o código por e-mail."
+    );
+  } finally {
+    setCarregando(false);
   }
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -74,17 +121,28 @@ export default function CadastroRestauranteConfirmarEmail() {
                 {email || "E-mail não informado"}
               </p>
             </div>
+            {erro && (
+              <p className="mt-4 text-center text-sm text-red-600">
+                {erro}
+              </p>
+            )}
           </div>
 
           {/* CONFIRMAR */}
           <button
             type="button"
             onClick={confirmarEmail}
-            disabled={!email}
+            disabled={!email || carregando}
             className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-red-600 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            Confirmar e-mail
-            <ArrowRight size={18} />
+            {carregando ? (
+            "Enviando código..."
+          ) : (
+            <>
+              Confirmar e-mail
+              <ArrowRight size={18} />
+            </>
+          )}
           </button>
 
           {/* OUTRO E-MAIL */}

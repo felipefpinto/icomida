@@ -27,11 +27,14 @@ export default function VerificarTelefone() {
   ]);
 
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [sucesso, setSucesso] = useState("");
 
   const inputsRef = useRef([]);
 
   // Código temporário para testes
-  const codigoCorreto = "123456";
+  //const codigoCorreto = "123456";
 
   const handleChange = (value, index) => {
     if (!/^\d*$/.test(value)) return;
@@ -58,7 +61,7 @@ export default function VerificarTelefone() {
     }
   };
 
-const handleSubmit = (event) => {
+const handleSubmit = async (event) => {
   event.preventDefault();
 
   const codigoDigitado = codigo.join("");
@@ -68,35 +71,123 @@ const handleSubmit = (event) => {
     return;
   }
 
-  if (codigoDigitado !== codigoCorreto) {
-    setErro("Código incorreto. Tente novamente.");
+  if (!celular) {
+    setErro("Celular não informado.");
     return;
   }
 
-  // Código correto
+  setErro("");
+  setSucesso("");
+  setCarregando(true);
 
-  // Se NÃO possui e-mail, vai para a tela de cadastro de e-mail
-  if (!email) {
-    router.push(
-      `/cadastro/usuario/email?celular=${encodeURIComponent(
-        celular || ""
-      )}`
+  try {
+    const celularNumeros = celular.replace(/\D/g, "");
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/verificar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celularNumeros,
+          codigo: codigoDigitado,
+        }),
+      }
     );
 
-    return;
-  }
+    const data = await response.json();
 
-  // Se já possui celular + e-mail,
-  // vai para a tela final de dados
-  router.push(
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem || "Código incorreto. Tente novamente."
+      );
+      return;
+    }
+
+    // Código validado pelo backend
+
+    // Se NÃO possui e-mail, vai para cadastro de e-mail
+    if (!email) {
+      router.push(
+        `/cadastro/usuario/email?celular=${encodeURIComponent(
+          celular
+        )}`
+      );
+
+      return;
+    }
+
+    // Se possui celular + e-mail, vai para os dados finais
+    router.push(
       `/cadastro/usuario/dados?email=${encodeURIComponent(
         email
       )}&celular=${encodeURIComponent(
-        celular || ""
+        celular
       )}&origem=${encodeURIComponent(
         origem || ""
       )}`
-  );
+    );
+  } catch (error) {
+    console.error("Erro ao verificar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setCarregando(false);
+  }
+};
+
+const reenviarCodigo = async () => {
+  if (!celular || reenviando) {
+    return;
+  }
+
+  setErro("");
+  setSucesso("");
+  setReenviando(true);
+
+  try {
+    const celularNumeros = celular.replace(/\D/g, "");
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celularNumeros,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem || "Não foi possível reenviar o código."
+      );
+      return;
+    }
+
+    setCodigo(["", "", "", "", "", ""]);
+
+    setSucesso("Código reenviado com sucesso.");
+
+    inputsRef.current[0]?.focus();
+  } catch (error) {
+    console.error("Erro ao reenviar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setReenviando(false);
+  }
 };
 
   return (
@@ -213,15 +304,25 @@ const handleSubmit = (event) => {
             </div>
 
             {/* ERRO */}
-            {erro && (
-              <p className="mt-4 text-center text-sm text-red-600">
-                {erro}
-              </p>
-            )}
+            {/* MENSAGENS */}
+              {erro && (
+                <p className="mt-4 text-center text-sm text-red-600">
+                  {erro}
+                </p>
+              )}
+
+              {sucesso && (
+                <p className="mt-4 text-center text-sm text-green-600">
+                  {sucesso}
+                </p>
+              )}
+
+
 
             {/* CONFIRMAR */}
             <button
               type="submit"
+              disabled={carregando}
               className="
                 mt-6
                 flex
@@ -237,11 +338,18 @@ const handleSubmit = (event) => {
                 text-white
                 transition
                 hover:bg-red-700
+                disabled:cursor-not-allowed
+                disabled:bg-gray-300
               "
             >
-              Confirmar código
-
-              <ArrowRight size={18} />
+              {carregando ? (
+                "Verificando..."
+              ) : (
+                <>
+                  Confirmar código
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
 
           </form>
@@ -255,6 +363,8 @@ const handleSubmit = (event) => {
 
             <button
               type="button"
+              onClick={reenviarCodigo}
+              disabled={reenviando}
               className="
                 mt-2
                 text-sm
@@ -262,9 +372,11 @@ const handleSubmit = (event) => {
                 text-red-600
                 transition
                 hover:text-red-700
+                disabled:cursor-not-allowed
+                disabled:text-gray-400
               "
             >
-              Reenviar código
+              {reenviando ? "Reenviando..." : "Reenviar código"}
             </button>
 
           </div>

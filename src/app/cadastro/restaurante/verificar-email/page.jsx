@@ -26,11 +26,14 @@ export default function VerificarEmailRestaurante() {
   ]);
 
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [sucesso, setSucesso] = useState("");
 
   const inputsRef = useRef([]);
 
   // Código temporário para testes
-  const codigoCorreto = "123456";
+  //const codigoCorreto = "123456";
 
   function handleChange(value, index) {
     if (!/^\d*$/.test(value)) {
@@ -59,44 +62,139 @@ export default function VerificarEmailRestaurante() {
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
   event.preventDefault();
 
   const codigoDigitado = codigo.join("");
+
+  if (!email) {
+    setErro("E-mail não informado.");
+    return;
+  }
 
   if (codigoDigitado.length !== 6) {
     setErro("Digite o código completo.");
     return;
   }
 
-  if (codigoDigitado !== codigoCorreto) {
-    setErro("Código incorreto. Tente novamente.");
-    return;
-  }
+  setErro("");
+  setSucesso("");
+  setCarregando(true);
 
-  // ==========================================
-  // CADASTRO COMEÇOU PELO E-MAIL
-  // Ainda precisamos solicitar o celular.
-  // ==========================================
-  if (!celular) {
-    router.push(
-      `/cadastro/restaurante/telefone?email=${encodeURIComponent(
-        email
-      )}`
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/verificar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          codigo: codigoDigitado,
+        }),
+      }
     );
 
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Código inválido ou expirado."
+      );
+      return;
+    }
+
+    // ==========================================
+    // CADASTRO COMEÇOU PELO E-MAIL
+    // Ainda precisamos solicitar o celular.
+    // ==========================================
+
+    if (!celular) {
+      router.push(
+        `/cadastro/restaurante/telefone?email=${encodeURIComponent(
+          email
+        )}`
+      );
+
+      return;
+    }
+
+    // ==========================================
+    // E-MAIL E CELULAR JÁ FORAM VERIFICADOS
+    // Vai para os dados do responsável.
+    // ==========================================
+
+    router.push(
+      `/cadastro/restaurante/dados-responsavel?email=${encodeURIComponent(
+        email
+      )}&celular=${encodeURIComponent(celular)}`
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao verificar código:",
+      error
+    );
+
+    setErro(
+      "Não foi possível verificar o código."
+    );
+  } finally {
+    setCarregando(false);
+  }
+}
+
+async function reenviarCodigo() {
+  if (!email) {
+    setErro("E-mail não informado.");
     return;
   }
 
-  // ==========================================
-  // E-MAIL E CELULAR JÁ FORAM VERIFICADOS
-  // Vai para os dados do responsável.
-  // ==========================================
-  router.push(
-    `/cadastro/restaurante/dados-responsavel?email=${encodeURIComponent(
-      email
-    )}&celular=${encodeURIComponent(celular)}`
-  );
+  setErro("");
+  setSucesso("");
+  setReenviando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Não foi possível reenviar o código."
+      );
+      return;
+    }
+
+    setCodigo(["", "", "", "", "", ""]);
+    inputsRef.current[0]?.focus();
+
+    setSucesso("Novo código enviado para seu e-mail.");
+  } catch (error) {
+    console.error(
+      "Erro ao reenviar código:",
+      error
+    );
+
+    setErro(
+      "Não foi possível reenviar o código."
+    );
+  } finally {
+    setReenviando(false);
+  }
 }
 
   return (
@@ -173,14 +271,26 @@ export default function VerificarEmailRestaurante() {
                 {erro}
               </p>
             )}
+            {sucesso && (
+              <p className="mt-4 text-center text-sm text-green-600">
+                {sucesso}
+              </p>
+            )}
 
             {/* CONFIRMAR */}
             <button
               type="submit"
+              disabled={carregando}
               className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-red-600 text-sm font-semibold text-white transition hover:bg-red-700"
             >
-              Confirmar código
-              <ArrowRight size={18} />
+              {carregando ? (
+                "Verificando..."
+              ) : (
+                <>
+                  Confirmar código
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
           </form>
 
@@ -190,12 +300,16 @@ export default function VerificarEmailRestaurante() {
               Não recebeu o código?
             </p>
 
-            <button
-              type="button"
-              className="mt-2 text-sm font-medium text-red-600 transition hover:text-red-700"
-            >
-              Reenviar código
-            </button>
+          <button
+            type="button"
+            onClick={reenviarCodigo}
+            disabled={reenviando}
+            className="mt-2 text-sm font-medium text-red-600 transition hover:text-red-700 disabled:cursor-not-allowed disabled:text-gray-400"
+          >
+            {reenviando
+              ? "Reenviando..."
+              : "Reenviar código"}
+          </button>
           </div>
         </div>
       </div>

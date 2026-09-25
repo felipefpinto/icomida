@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import {
   ArrowLeft,
   Smartphone,
@@ -16,16 +17,69 @@ export default function ConfirmarTelefoneRestaurante() {
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
   const origem = searchParams.get("origem");
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
 
-  function confirmarCelular() {
+  async function confirmarCelular() {
+  if (!celular) {
+    setErro("Celular não informado.");
+    return;
+  }
+
+  const celularLimpo = celular.replace(/\D/g, "");
+
+  if (celularLimpo.length !== 11) {
+    setErro("Informe um celular válido.");
+    return;
+  }
+
+  setErro("");
+  setCarregando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celularLimpo,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Não foi possível enviar o código por SMS."
+      );
+      return;
+    }
+
     router.push(
       `/cadastro/restaurante/verificar-telefone?email=${encodeURIComponent(
         email || ""
       )}&celular=${encodeURIComponent(
-        celular || ""
+        celularLimpo
       )}&origem=${encodeURIComponent(origem || "")}`
     );
+  } catch (error) {
+    console.error(
+      "Erro ao enviar código por SMS:",
+      error
+    );
+
+    setErro(
+      "Não foi possível enviar o código por SMS."
+    );
+  } finally {
+    setCarregando(false);
   }
+}
 
   function formatarCelular(numero) {
     if (!numero) {
@@ -87,16 +141,27 @@ export default function ConfirmarTelefoneRestaurante() {
                 {formatarCelular(celular)}
               </p>
             </div>
+            {erro && (
+            <p className="mt-4 text-center text-sm text-red-600">
+              {erro}
+            </p>
+          )}
           </div>
 
           <button
             type="button"
             onClick={confirmarCelular}
-            disabled={!celular}
+            disabled={!celular || carregando}
             className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-red-600 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            Confirmar celular
-            <ArrowRight size={18} />
+            {carregando ? (
+            "Enviando código..."
+          ) : (
+            <>
+              Confirmar celular
+              <ArrowRight size={18} />
+            </>
+          )}
           </button>
 
           <Link
