@@ -23,6 +23,7 @@ export default function Header() {
   const [enderecos, setEnderecos] = useState([]);
   const [enderecoSelecionado, setEnderecoSelecionado] = useState(null);
   const [menuEnderecoAberto, setMenuEnderecoAberto] = useState(false);
+  const [quantidadeCarrinho, setQuantidadeCarrinho] = useState(0);
 
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem("usuarioLogado");
@@ -108,6 +109,74 @@ export default function Header() {
   carregarEnderecos();
 }, [usuario]);
 
+useEffect(() => {
+  async function carregarQuantidadeCarrinho() {
+    const usuarioSalvo =
+      localStorage.getItem("usuarioLogado");
+
+    if (!usuarioSalvo) {
+      setQuantidadeCarrinho(0);
+      return;
+    }
+
+    try {
+      const usuarioLogado =
+        JSON.parse(usuarioSalvo);
+
+      if (!usuarioLogado.id_usuario) {
+        setQuantidadeCarrinho(0);
+        return;
+      }
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/usuarios/${usuarioLogado.id_usuario}/carrinho`
+      );
+
+      if (response.status === 404) {
+        setQuantidadeCarrinho(0);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          "Não foi possível buscar o carrinho."
+        );
+      }
+
+      const carrinho = await response.json();
+
+      const quantidade = carrinho.itens.reduce(
+        (total, item) =>
+          total + Number(item.quantidade || 0),
+        0
+      );
+
+      setQuantidadeCarrinho(quantidade);
+    } catch (error) {
+      console.error(
+        "Erro ao carregar quantidade do carrinho:",
+        error
+      );
+
+      setQuantidadeCarrinho(0);
+    }
+  }
+
+  carregarQuantidadeCarrinho();
+
+  window.addEventListener(
+    "carrinhoAlterado",
+    carregarQuantidadeCarrinho
+  );
+
+  return () => {
+    window.removeEventListener(
+      "carrinhoAlterado",
+      carregarQuantidadeCarrinho
+    );
+  };
+}, [usuario]);
+
   function sair() {
   localStorage.removeItem("usuarioLogado");
 
@@ -117,12 +186,20 @@ export default function Header() {
   window.location.href = "/";
   }
 
-  function selecionarEndereco(endereco) {
+function selecionarEndereco(endereco) {
   setEnderecoSelecionado(endereco);
 
   localStorage.setItem(
     "enderecoSelecionadoId",
     endereco.id_endereco.toString()
+  );
+
+  window.dispatchEvent(
+    new CustomEvent("enderecoAlterado", {
+      detail: {
+        id_endereco: endereco.id_endereco,
+      },
+    })
   );
 
   setMenuEnderecoAberto(false);
@@ -636,45 +713,52 @@ export default function Header() {
 
         {/* CARRINHO */}
 
-        <button
-          className="
-            relative
-            flex
-            h-10
-            w-10
-            shrink-0
-            items-center
-            justify-center
-            rounded-full
-            text-gray-700
-            transition
-            hover:bg-gray-100
-          "
-        >
+        {/* CARRINHO */}
 
-          <ShoppingBag size={40} />
+<Link
+  href="/sacola"
+  className="
+    relative
+    flex
+    h-10
+    w-10
+    shrink-0
+    items-center
+    justify-center
+    rounded-full
+    text-gray-700
+    transition
+    hover:bg-gray-100
+  "
+  aria-label="Abrir sacola"
+>
+  <ShoppingBag size={40} />
 
-          <span
-            className="
-              absolute
-              -right-0.25
-              -top-0.25
-              flex
-              h-[25px]
-              w-[25px]
-              items-center
-              justify-center
-              rounded-full
-              bg-red-600
-              text-[15px]
-              font-bold
-              text-white
-            "
-          >
-            0
-          </span>
-
-        </button>
+  {quantidadeCarrinho > 0 && (
+  <span
+    className="
+      absolute
+      -right-0.25
+      -top-0.25
+      flex
+      h-[25px]
+      min-w-[25px]
+      items-center
+      justify-center
+      rounded-full
+      bg-red-600
+      px-1
+      text-[15px]
+      font-bold
+      text-white
+    "
+  >
+    {quantidadeCarrinho > 99
+      ? "99+"
+      : quantidadeCarrinho}
+  </span>
+)}
+</Link>
 
 
         {/* MENU MOBILE */}
