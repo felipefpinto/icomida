@@ -17,53 +17,139 @@ export default function ConfirmarEmail() {
   const searchParams = useSearchParams();
 
   const celular = searchParams.get("celular");
+  const tipo = searchParams.get("tipo");
 
   const [email, setEmail] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [enviando, setEnviando] = useState(false);
 
-  useEffect(() => {
-    async function buscarEmail() {
-      if (!celular) {
-        setErro("Celular não informado.");
-        setCarregando(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/email?celular=${encodeURIComponent(
-            celular
-          )}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Celular não encontrado.");
-        }
-
-        const usuario = await response.json();
-
-        setEmail(usuario.email);
-      } catch (error) {
-        console.error(error);
-        setErro("Não foi possível encontrar o e-mail cadastrado.");
-      } finally {
-        setCarregando(false);
-      }
+useEffect(() => {
+  async function buscarEmail() {
+    if (!celular) {
+      setErro("Celular não informado.");
+      setCarregando(false);
+      return;
     }
 
-    buscarEmail();
-  }, [celular]);
+    if (
+      tipo !== "usuario" &&
+      tipo !== "responsavel"
+    ) {
+      setErro("Tipo de acesso não informado.");
+      setCarregando(false);
+      return;
+    }
 
-  function continuar() {
-    if (!email) return;
+    try {
+      let url = "";
+
+      // =========================
+      // USUÁRIO
+      // =========================
+      if (tipo === "usuario") {
+        url =
+          `http://127.0.0.1:8000/usuario/email?celular=${encodeURIComponent(
+            celular
+          )}`;
+      }
+
+      // =========================
+      // RESPONSÁVEL
+      // =========================
+      if (tipo === "responsavel") {
+  url =
+    `http://127.0.0.1:8000/responsavel-restaurante/email?celular=${encodeURIComponent(
+      celular
+    )}`;
+}
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(
+          "Celular não encontrado."
+        );
+      }
+
+      const dados = await response.json();
+
+      setEmail(dados.email);
+    } catch (error) {
+      console.error(error);
+
+      setErro(
+        "Não foi possível encontrar o e-mail cadastrado."
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  buscarEmail();
+}, [celular, tipo]);
+
+async function continuar() {
+  if (!celular) {
+    setErro("Celular não informado.");
+    return;
+  }
+
+  if (
+    tipo !== "usuario" &&
+    tipo !== "responsavel"
+  ) {
+    setErro("Tipo de acesso não informado.");
+    return;
+  }
+
+  setErro("");
+  setEnviando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/enviar-por-celular",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celular.replace(/\D/g, ""),
+          tipo: tipo,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          data.detail ||
+          "Não foi possível enviar o código."
+      );
+      return;
+    }
 
     router.push(
-      `/login/verificar-email?email=${encodeURIComponent(
-        email
-      )}&celular=${encodeURIComponent(celular || "")}`
+      `/login/verificar-email?celular=${encodeURIComponent(
+        celular
+      )}&tipo=${encodeURIComponent(tipo)}`
     );
+  } catch (error) {
+    console.error(
+      "Erro ao enviar código por e-mail:",
+      error
+    );
+
+    setErro(
+      "Não foi possível enviar o código."
+    );
+  } finally {
+    setEnviando(false);
   }
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -169,6 +255,7 @@ export default function ConfirmarEmail() {
               <button
                 type="button"
                 onClick={continuar}
+                disabled={enviando}
                 className="
                   mt-6
                   flex
@@ -186,8 +273,14 @@ export default function ConfirmarEmail() {
                   hover:bg-red-700
                 "
               >
-                Confirmar e-mail
-                <ArrowRight size={18} />
+                {enviando ? (
+                "Enviando código..."
+              ) : (
+                <>
+                  Confirmar e-mail
+                  <ArrowRight size={18} />
+                </>
+              )}
               </button>
             </>
           )}

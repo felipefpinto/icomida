@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 import {
   Mail,
@@ -18,79 +19,272 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
+
+  async function enviarCodigoEmail(email) {
+  const response = await fetch(
+    "http://127.0.0.1:8000/verificacao/email/enviar",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: email.trim(),
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.sucesso) {
+    throw new Error(
+      data.mensagem ||
+        "Não foi possível enviar o código por e-mail."
+    );
+  }
+
+  return data;
+}
+
+async function enviarCodigoTelefone(celular) {
+  const response = await fetch(
+    "http://127.0.0.1:8000/verificacao/telefone/enviar",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        celular: celular.replace(/\D/g, ""),
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.sucesso) {
+    throw new Error(
+      data.mensagem ||
+        "Não foi possível enviar o código por SMS."
+    );
+  }
+
+  return data;
+}
+
    async function handleContinue() {
-    try {
+  try {
+    // =========================
+    // LOGIN POR E-MAIL
+    // =========================
+    if (method === "email") {
+      const emailFormatado = email.trim();
+
+      // Verifica na tabela Usuario
+      const responseUsuario = await fetch(
+        `http://127.0.0.1:8000/usuario/buscaremail?email=${encodeURIComponent(
+          emailFormatado
+        )}`
+      );
+
+      // Verifica na tabela ResponsavelRestaurante
+      const responseResponsavel = await fetch(
+        `http://127.0.0.1:8000/responsavel-restaurante/email/${encodeURIComponent(
+          emailFormatado
+        )}`
+      );
+
+      console.log(
+        "Status Usuario:",
+        responseUsuario.status
+      );
+
+      console.log(
+        "Status Responsável:",
+        responseResponsavel.status
+      );
+
+      const usuarioExiste =
+        responseUsuario.status === 200;
+
+      const responsavelExiste =
+        responseResponsavel.status === 200;
+
       // =========================
-      // LOGIN POR E-MAIL
+      // NÃO EXISTE EM NENHUMA
       // =========================
-      if (method === "email") {
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/buscaremail?email=${encodeURIComponent(email)}`
+
+      if (!usuarioExiste && !responsavelExiste) {
+        router.push(
+          `/cadastro?email=${encodeURIComponent(
+            emailFormatado
+          )}`
         );
 
-        console.log("Status da resposta:", response.status);
-
-        if (response.status === 200) {
-          router.push(
-            `/login/verificar-email?email=${encodeURIComponent(email)}`
-          );
-          return;
-        }
-
-        if (response.status === 404) {
-          router.push(
-            `/cadastro?email=${encodeURIComponent(email)}`
-          );
-          return;
-        }
-
-        throw new Error("Erro ao verificar e-mail");
+        return;
       }
 
       // =========================
-      // LOGIN POR CELULAR
+      // EXISTE SOMENTE USUÁRIO
       // =========================
-      if (method === "phone") {
-        const celularFormatado = phone.replace(/\D/g, "");
 
-        console.log("Celular enviado:", celularFormatado);
+      if (usuarioExiste && !responsavelExiste) {
+        await enviarCodigoEmail(emailFormatado);
 
-        const response = await fetch(
-          `http://127.0.0.1:8000/usuario/buscarcelular?celular=${encodeURIComponent(
+  router.push(
+    `/login/verificar-email?email=${encodeURIComponent(
+      emailFormatado
+    )}&tipo=usuario`
+  );
+
+  return;
+}
+
+      // =========================
+      // EXISTE SOMENTE RESPONSÁVEL
+      // =========================
+
+      if (!usuarioExiste && responsavelExiste) {
+  await enviarCodigoEmail(emailFormatado);
+
+  router.push(
+    `/login/verificar-email?email=${encodeURIComponent(
+      emailFormatado
+    )}&tipo=responsavel`
+  );
+
+  return;
+}
+
+      // =========================
+      // EXISTE NAS DUAS TABELAS
+      // =========================
+
+      if (usuarioExiste && responsavelExiste) {
+        router.push(
+          `/login/selecionar-tipo?email=${encodeURIComponent(
+            emailFormatado
+          )}`
+        );
+
+        return;
+      }
+    }
+
+    // =========================
+    // LOGIN POR CELULAR
+    // =========================
+    if (method === "phone") {
+      const celularFormatado = phone.replace(/\D/g, "");
+
+      console.log(
+        "Celular enviado:",
+        celularFormatado
+      );
+
+      // Verifica na tabela Usuario
+      const responseUsuario = await fetch(
+        `http://127.0.0.1:8000/usuario/buscarcelular?celular=${encodeURIComponent(
+          celularFormatado
+        )}`
+      );
+
+      // Verifica na tabela ResponsavelRestaurante
+      const responseResponsavel = await fetch(
+        `http://127.0.0.1:8000/responsavel-restaurante/celular/${encodeURIComponent(
+          celularFormatado
+        )}`
+      );
+
+      console.log(
+        "Status Usuario:",
+        responseUsuario.status
+      );
+
+      console.log(
+        "Status Responsável:",
+        responseResponsavel.status
+      );
+
+      const usuarioExiste =
+        responseUsuario.status === 200;
+
+      const responsavelExiste =
+        responseResponsavel.status === 200;
+
+      // =========================
+      // NÃO EXISTE EM NENHUMA
+      // =========================
+
+      if (!usuarioExiste && !responsavelExiste) {
+        router.push(
+          `/cadastro?celular=${encodeURIComponent(
             celularFormatado
           )}`
         );
 
-        console.log("Status da resposta:", response.status);
-
-        if (response.status === 200) {
-          router.push(
-            `/login/verificar-telefone?celular=${encodeURIComponent(
-              celularFormatado
-            )}`
-          );
-          return;
-        }
-
-        if (response.status === 404) {
-          router.push(
-            `/cadastro?celular=${encodeURIComponent(
-              celularFormatado
-            )}`
-          );
-          return;
-        }
-
-        throw new Error("Erro ao verificar celular");
+        return;
       }
-    } catch (error) {
-      console.error(error);
-    }
-  }
 
-  function handleGoogleLogin() {
-    console.log("Login com Google");
+      // =========================
+      // EXISTE SOMENTE USUÁRIO
+      // =========================
+
+      if (usuarioExiste && !responsavelExiste) {
+        await enviarCodigoTelefone(celularFormatado);
+        router.push(
+          `/login/verificar-telefone?celular=${encodeURIComponent(
+            celularFormatado
+          )}&tipo=usuario`
+        );
+
+        return;
+      }
+
+      // =========================
+      // EXISTE SOMENTE RESPONSÁVEL
+      // =========================
+
+      if (!usuarioExiste && responsavelExiste) {
+        await enviarCodigoTelefone(celularFormatado);
+        router.push(
+          `/login/verificar-telefone?celular=${encodeURIComponent(
+            celularFormatado
+          )}&tipo=responsavel`
+        );
+
+        return;
+      }
+
+      // =========================
+      // EXISTE NAS DUAS TABELAS
+      // =========================
+
+      if (usuarioExiste && responsavelExiste) {
+        router.push(
+          `/login/selecionar-tipo?celular=${encodeURIComponent(
+            celularFormatado
+          )}`
+        );
+
+        return;
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Erro ao verificar login:",
+      error
+    );
   }
+}
+
+  
+  async function handleGoogleLogin() {
+    await signIn("google", {
+      callbackUrl: "/login/google",
+    });
+  }
+  
 
   function handleBack() {
     setMethod(null);

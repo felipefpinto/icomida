@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
+
+import { useSession } from "next-auth/react";
+
 import Link from "next/link";
+
 import {
   ArrowLeft,
   User,
@@ -16,13 +21,30 @@ export default function DadosUsuario() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const { data: session } = useSession();
+
   const email = searchParams.get("email") || "";
   const celular = searchParams.get("celular") || "";
+  const origem = searchParams.get("origem");
 
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  // =====================================================
+  // PREENCHER NOME AUTOMATICAMENTE QUANDO FOR GOOGLE
+  // =====================================================
+
+  useEffect(() => {
+    if (origem === "google" && session?.user?.name && !nome) {
+      setNome(session.user.name);
+    }
+  }, [origem, session, nome]);
+
+  // =====================================================
+  // FORMATAR CPF
+  // =====================================================
 
   function formatarCpf(value) {
     const numeros = value.replace(/\D/g, "");
@@ -59,18 +81,38 @@ export default function DadosUsuario() {
     setErro("");
   }
 
+  // =====================================================
+  // CADASTRAR
+  // =====================================================
+
   async function cadastrar() {
     setErro("");
+
+    // -----------------------------------------
+    // VALIDA NOME
+    // -----------------------------------------
 
     if (!nome.trim()) {
       setErro("Digite seu nome completo.");
       return;
     }
 
+    // -----------------------------------------
+    // CPF
+    // -----------------------------------------
+
     const cpfNumeros = cpf.replace(/\D/g, "");
+
+    // -----------------------------------------
+    // CELULAR
+    // -----------------------------------------
+
     const celularNumeros = celular.replace(/\D/g, "");
 
-    if (cpfNumeros.length > 0 && cpfNumeros.length !== 11) {
+    if (
+      cpfNumeros.length > 0 &&
+      cpfNumeros.length !== 11
+    ) {
       setErro("Digite um CPF válido.");
       return;
     }
@@ -79,6 +121,10 @@ export default function DadosUsuario() {
       setErro("Celular inválido.");
       return;
     }
+
+    // -----------------------------------------
+    // E-MAIL
+    // -----------------------------------------
 
     if (!email) {
       setErro("E-mail não informado.");
@@ -106,23 +152,40 @@ export default function DadosUsuario() {
 
       const data = await response.json();
 
+      // -----------------------------------------
+      // ERRO
+      // -----------------------------------------
+
       if (!response.ok) {
         if (Array.isArray(data.detail)) {
           setErro("Verifique os dados informados.");
         } else {
           setErro(
-            data.detail || "Não foi possível realizar o cadastro."
+            data.detail ||
+              "Não foi possível realizar o cadastro."
           );
         }
 
         return;
       }
 
+      // -----------------------------------------
+      // CADASTRO REALIZADO
+      // -----------------------------------------
+
       console.log("Usuário cadastrado:", data);
 
-      router.push("/");
+      localStorage.setItem(
+        "usuarioLogado",
+        JSON.stringify(data)
+      );
+
+      router.replace("/");
     } catch (error) {
-      console.error("Erro ao cadastrar usuário:", error);
+      console.error(
+        "Erro ao cadastrar usuário:",
+        error
+      );
 
       setErro(
         "Não foi possível conectar com o servidor."
@@ -132,15 +195,26 @@ export default function DadosUsuario() {
     }
   }
 
+  // =====================================================
+  // URL PARA VOLTAR
+  // =====================================================
+
+  const urlVoltar =
+    `/cadastro/usuario/verificar-telefone` +
+    `?email=${encodeURIComponent(email)}` +
+    `&celular=${encodeURIComponent(celular)}` +
+    (origem
+      ? `&origem=${encodeURIComponent(origem)}`
+      : "");
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
       <div className="w-full max-w-md">
 
         {/* VOLTAR */}
+
         <Link
-          href={`/cadastro/usuario/verificar-telefone?email=${encodeURIComponent(
-            email
-          )}&celular=${encodeURIComponent(celular)}`}
+          href={urlVoltar}
           className="
             mb-6
             inline-flex
@@ -156,9 +230,12 @@ export default function DadosUsuario() {
           Voltar
         </Link>
 
+        {/* CARD */}
+
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
 
           {/* ÍCONE */}
+
           <div className="mb-6 flex justify-center">
             <div
               className="
@@ -177,6 +254,7 @@ export default function DadosUsuario() {
           </div>
 
           {/* TÍTULO */}
+
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">
               Finalize seu cadastro
@@ -188,6 +266,7 @@ export default function DadosUsuario() {
           </div>
 
           {/* NOME */}
+
           <div className="mt-8">
             <label
               htmlFor="nome"
@@ -212,7 +291,10 @@ export default function DadosUsuario() {
                 focus-within:ring-red-100
               "
             >
-              <User size={20} className="text-gray-400" />
+              <User
+                size={20}
+                className="text-gray-400"
+              />
 
               <input
                 id="nome"
@@ -237,6 +319,7 @@ export default function DadosUsuario() {
           </div>
 
           {/* CPF */}
+
           <div className="mt-5">
             <label
               htmlFor="cpf"
@@ -264,7 +347,10 @@ export default function DadosUsuario() {
                 focus-within:ring-red-100
               "
             >
-              <CreditCard size={20} className="text-gray-400" />
+              <CreditCard
+                size={20}
+                className="text-gray-400"
+              />
 
               <input
                 id="cpf"
@@ -287,6 +373,7 @@ export default function DadosUsuario() {
           </div>
 
           {/* EMAIL */}
+
           <div className="mt-5">
             <label className="mb-2 block text-sm font-medium text-gray-700">
               E-mail
@@ -304,7 +391,10 @@ export default function DadosUsuario() {
                 px-4
               "
             >
-              <Mail size={20} className="text-gray-400" />
+              <Mail
+                size={20}
+                className="text-gray-400"
+              />
 
               <div className="flex h-12 items-center">
                 <p className="truncate text-sm text-gray-600">
@@ -315,6 +405,7 @@ export default function DadosUsuario() {
           </div>
 
           {/* CELULAR */}
+
           <div className="mt-5">
             <label className="mb-2 block text-sm font-medium text-gray-700">
               Celular
@@ -332,7 +423,10 @@ export default function DadosUsuario() {
                 px-4
               "
             >
-              <Phone size={20} className="text-gray-400" />
+              <Phone
+                size={20}
+                className="text-gray-400"
+              />
 
               <div className="flex h-12 items-center">
                 <p className="text-sm text-gray-600">
@@ -348,6 +442,7 @@ export default function DadosUsuario() {
           </div>
 
           {/* ERRO */}
+
           {erro && (
             <p className="mt-4 text-center text-sm text-red-600">
               {erro}
@@ -355,6 +450,7 @@ export default function DadosUsuario() {
           )}
 
           {/* CADASTRAR */}
+
           <button
             type="button"
             onClick={cadastrar}
@@ -378,11 +474,14 @@ export default function DadosUsuario() {
               disabled:bg-gray-300
             "
           >
-            {carregando ? "Cadastrando..." : "Cadastrar"}
+            {carregando
+              ? "Cadastrando..."
+              : "Cadastrar"}
 
-            {!carregando && <ArrowRight size={18} />}
+            {!carregando && (
+              <ArrowRight size={18} />
+            )}
           </button>
-
         </div>
       </div>
     </main>

@@ -26,11 +26,14 @@ export default function VerificarEmail() {
   ]);
 
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [sucesso, setSucesso] = useState("");
 
   const inputsRef = useRef([]);
 
   // Código temporário para testes
-  const codigoCorreto = "123456";
+  //const codigoCorreto = "123456";
 
   function handleChange(value, index) {
     if (!/^\d*$/.test(value)) {
@@ -62,28 +65,127 @@ export default function VerificarEmail() {
     }
   }
 
-  function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSubmit(event) {
+  event.preventDefault();
 
-    const codigoDigitado = codigo.join("");
+  const codigoDigitado = codigo.join("");
 
-    if (codigoDigitado.length !== 6) {
-      setErro("Digite o código completo.");
+  if (codigoDigitado.length !== 6) {
+    setErro("Digite o código completo.");
+    return;
+  }
+
+  if (!email || carregando) {
+    return;
+  }
+
+  setErro("");
+  setSucesso("");
+  setCarregando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/verificar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          codigo: codigoDigitado,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Não foi possível verificar o código."
+      );
       return;
     }
 
-    if (codigoDigitado !== codigoCorreto) {
-      setErro("Código incorreto. Tente novamente.");
+    // Se já possui celular, e-mail e telefone
+    // já foram verificados.
+    if (celular) {
+      router.push(
+        `/cadastro/usuario/dados?email=${encodeURIComponent(
+          email
+        )}&celular=${encodeURIComponent(
+          celular
+        )}`
+      );
+
       return;
     }
 
-    // Código correto
+    // Cadastro iniciado pelo e-mail:
+    // agora precisamos obter o telefone.
     router.push(
       `/cadastro/usuario/telefone?email=${encodeURIComponent(
         email
-      )}&celular=${encodeURIComponent(celular)}`
+      )}`
     );
+  } catch (error) {
+    console.error("Erro ao verificar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setCarregando(false);
   }
+}
+async function reenviarCodigo() {
+  if (!email || reenviando) {
+    return;
+  }
+
+  setErro("");
+  setSucesso("");
+  setReenviando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Não foi possível reenviar o código."
+      );
+      return;
+    }
+
+    setCodigo(["", "", "", "", "", ""]);
+    setSucesso("Novo código enviado para o seu e-mail.");
+
+    inputsRef.current[0]?.focus();
+  } catch (error) {
+    console.error("Erro ao reenviar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setReenviando(false);
+  }
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -196,10 +298,16 @@ export default function VerificarEmail() {
                 {erro}
               </p>
             )}
+            {sucesso && (
+              <p className="mt-4 text-center text-sm text-green-600">
+                {sucesso}
+              </p>
+            )}
 
             {/* CONFIRMAR */}
             <button
               type="submit"
+              disabled={carregando}
               className="
                 mt-6
                 flex
@@ -217,8 +325,14 @@ export default function VerificarEmail() {
                 hover:bg-red-700
               "
             >
-              Confirmar código
-              <ArrowRight size={18} />
+              {carregando ? (
+              "Verificando..."
+            ) : (
+              <>
+                Confirmar código
+                <ArrowRight size={18} />
+              </>
+            )}
             </button>
           </form>
 
@@ -230,6 +344,8 @@ export default function VerificarEmail() {
 
             <button
               type="button"
+              onClick={reenviarCodigo}
+              disabled={reenviando}
               className="
                 mt-2
                 text-sm
@@ -239,7 +355,7 @@ export default function VerificarEmail() {
                 hover:text-red-700
               "
             >
-              Reenviar código
+              {reenviando ? "Reenviando..." : "Reenviar código"}
             </button>
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -17,15 +17,55 @@ export default function CadastroUsuario() {
 
   const email = searchParams.get("email");
   const celular = searchParams.get("celular");
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
+ 
+async function confirmarEmail() {
+  if (!email || carregando) return;
 
- function confirmarEmail() {
-  router.push(
-    `/cadastro/usuario/verificar-email?email=${encodeURIComponent(
-      email || ""
-    )}&celular=${encodeURIComponent(
-      celular || ""
-    )}`
-  );
+  setErro("");
+  setCarregando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/email/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Não foi possível enviar o código de verificação."
+      );
+      return;
+    }
+
+    router.push(
+      `/cadastro/usuario/verificar-email?email=${encodeURIComponent(
+        email
+      )}&celular=${encodeURIComponent(
+        celular || ""
+      )}`
+    );
+  } catch (error) {
+    console.error("Erro ao enviar código por e-mail:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setCarregando(false);
+  }
 }
 
   return (
@@ -83,13 +123,23 @@ export default function CadastroUsuario() {
           <button
             type="button"
             onClick={confirmarEmail}
-            disabled={!email}
+            disabled={!email || carregando}
             className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-red-600 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            Confirmar e-mail
-            <ArrowRight size={18} />
+            {carregando ? (
+            "Enviando código..."
+          ) : (
+            <>
+              Confirmar e-mail
+              <ArrowRight size={18} />
+            </>
+          )}
           </button>
-
+          {erro && (
+            <p className="mt-3 text-center text-sm text-red-600">
+              {erro}
+            </p>
+          )}
           <Link
             href="/login"
             className="mt-4 block text-center text-sm font-medium text-red-600 hover:text-red-700"

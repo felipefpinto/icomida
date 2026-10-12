@@ -1,6 +1,6 @@
 
 "use client";
-
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -16,15 +16,57 @@ export default function CadastroUsuario() {
   const searchParams = useSearchParams();
 
   const celular = searchParams.get("celular");
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
 
-  function confirmarCelular() {
-    // Próxima etapa do cadastro
+async function confirmarCelular() {
+  if (!celular || carregando) {
+    return;
+  }
+
+  setErro("");
+  setCarregando(true);
+
+  try {
+    const celularNumeros = celular.replace(/\D/g, "");
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: celularNumeros,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem || "Não foi possível enviar o código."
+      );
+      return;
+    }
+
     router.push(
       `/cadastro/usuario/verificar-telefone?celular=${encodeURIComponent(
-        celular || ""
+        celular
       )}`
     );
+  } catch (error) {
+    console.error("Erro ao enviar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setCarregando(false);
   }
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -121,12 +163,17 @@ export default function CadastroUsuario() {
               </p>
             </div>
           </div>
+          {erro && (
+          <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+            {erro}
+          </div>
+            )}
 
           {/* CONFIRMAR */}
           <button
             type="button"
             onClick={confirmarCelular}
-            disabled={!celular}
+            disabled={!celular || carregando}
             className="
               mt-6
               flex
@@ -146,8 +193,14 @@ export default function CadastroUsuario() {
               disabled:bg-gray-300
             "
           >
-            Confirmar celular
-            <ArrowRight size={18} />
+                      {carregando ? (
+            "Enviando código..."
+          ) : (
+            <>
+              Confirmar celular
+              <ArrowRight size={18} />
+            </>
+          )}
           </button>
 
           {/* ALTERAR */}

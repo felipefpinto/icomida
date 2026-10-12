@@ -15,9 +15,11 @@ export default function TelefoneUsuario() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
+  const origem = searchParams.get("origem");
 
   const [telefone, setTelefone] = useState("");
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
   function formatarTelefone(value) {
     const numeros = value.replace(/\D/g, "");
@@ -47,20 +49,64 @@ export default function TelefoneUsuario() {
     setErro("");
   }
 
-  function continuar() {
-    const numeros = telefone.replace(/\D/g, "");
+async function continuar() {
+  const numeros = telefone.replace(/\D/g, "");
 
-    if (numeros.length !== 11) {
-      setErro("Digite um telefone válido.");
+  if (numeros.length !== 11) {
+    setErro("Digite um telefone válido.");
+    return;
+  }
+
+  if (carregando) {
+    return;
+  }
+
+  setErro("");
+  setCarregando(true);
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/verificacao/telefone/enviar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          celular: numeros,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.sucesso) {
+      setErro(
+        data.mensagem ||
+          "Não foi possível enviar o código."
+      );
       return;
     }
 
     router.push(
       `/cadastro/usuario/verificar-telefone?email=${encodeURIComponent(
         email || ""
-      )}&celular=${encodeURIComponent(numeros)}`
+      )}&celular=${encodeURIComponent(
+        numeros
+      )}&origem=${encodeURIComponent(
+        origem || ""
+      )}`
     );
+  } catch (error) {
+    console.error("Erro ao enviar código:", error);
+
+    setErro(
+      "Não foi possível conectar ao servidor. Tente novamente."
+    );
+  } finally {
+    setCarregando(false);
   }
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -183,6 +229,7 @@ export default function TelefoneUsuario() {
           <button
             type="button"
             onClick={continuar}
+            disabled={carregando}
             className="
               mt-6
               flex
@@ -198,11 +245,18 @@ export default function TelefoneUsuario() {
               text-white
               transition
               hover:bg-red-700
+              disabled:cursor-not-allowed
+              disabled:bg-gray-300
             "
           >
-            Continuar
-
-            <ArrowRight size={18} />
+                      {carregando ? (
+            "Enviando código..."
+          ) : (
+            <>
+              Continuar
+              <ArrowRight size={18} />
+            </>
+          )}
           </button>
 
         </div>
