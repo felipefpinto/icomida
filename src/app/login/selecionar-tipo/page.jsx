@@ -118,7 +118,6 @@ async function continuar(tipo) {
 }
 
  
-  await continuar("responsavel");
 }
 
   return (
