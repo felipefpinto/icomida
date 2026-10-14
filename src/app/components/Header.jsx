@@ -16,7 +16,17 @@ import {
   LogOut,
 } from "lucide-react";
 
-export default function Header() {
+export default function Header({
+  onBuscar,
+  categorias = [],
+  categoriaSelecionada = "",
+  onSelecionarCategoria,
+  onAbrirCategorias,
+  carregandoCategorias = false,
+  erroCategorias = "",
+}) {
+  const [textoBusca, setTextoBusca] = useState("");
+  const [categoriasOpen, setCategoriasOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [usuario, setUsuario] = useState(null);
   const [perfilOpen, setPerfilOpen] = useState(false);
@@ -467,57 +477,47 @@ function selecionarEndereco(endereco) {
 
 
         {/* PESQUISA */}
-
-        <div
-          className="
-            flex
-            h-11
-            flex-1
-            overflow-hidden
-            rounded-lg
-            border
-            border-gray-300
-            bg-gray-50
-            transition
-            focus-within:border-red-500
-            focus-within:ring-2
-            focus-within:ring-red-100
-          "
+        <form
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onBuscar?.(textoBusca.trim());
+          }}
+          className="flex h-11 flex-1 overflow-hidden rounded-lg border border-gray-300 bg-gray-50 transition focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100"
         >
-
           <input
             type="text"
+            value={textoBusca}
+            onChange={(event) => {
+              const valor = event.target.value;
+              setTextoBusca(valor);
+              if (!valor.trim()) onBuscar?.("");
+            }}
+            aria-label="Buscar restaurantes ou pratos"
             placeholder="Buscar restaurantes ou pratos..."
-            className="
-              min-w-0
-              flex-1
-              bg-transparent
-              px-4
-              text-sm
-              text-gray-800
-              outline-none
-              placeholder:text-gray-400
-            "
+            className="min-w-0 flex-1 bg-transparent px-4 text-sm text-gray-800 outline-none placeholder:text-gray-400"
           />
-
+          {textoBusca && (
+            <button
+              type="button"
+              aria-label="Limpar busca"
+              onClick={() => {
+                setTextoBusca("");
+                onBuscar?.("");
+              }}
+              className="flex w-10 shrink-0 items-center justify-center text-gray-500 hover:text-red-600"
+            >
+              <X size={18} />
+            </button>
+          )}
           <button
-            className="
-              flex
-              w-12
-              items-center
-              justify-center
-              bg-red-600
-              text-white
-              transition
-              hover:bg-red-700
-            "
+            type="submit"
+            aria-label="Pesquisar"
+            className="flex w-12 shrink-0 items-center justify-center bg-red-600 text-white transition hover:bg-red-700"
           >
             <Search size={21} />
           </button>
-
-        </div>
-
-
+        </form>
         {/* USUÁRIO */}
 
         {/* USUÁRIO */}
@@ -812,25 +812,102 @@ function selecionarEndereco(endereco) {
           "
         >
 
-          <button
-            className="
-              flex
-              items-center
-              gap-2
-              text-sm
-              font-semibold
-              text-gray-800
-              hover:text-red-600
-            "
-          >
+          <div
+              className="relative"
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setCategoriasOpen(false);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setCategoriasOpen(false);
+                  event.currentTarget.querySelector("button")?.focus();
+                }
+              }}
+            >
+              <button
+                type="button"
+               onClick={() => {
+                if (!categoriasOpen) {
+                  onAbrirCategorias?.();
+                }
 
-            <Menu size={18} />
+                setCategoriasOpen((aberto) => !aberto);
+              }} 
+                aria-expanded={categoriasOpen}
+                aria-controls="lista-categorias-header"
+                className="flex items-center gap-2 text-sm font-semibold text-gray-800 hover:text-red-600"
+              >
+                <Menu size={18} />
 
-            Categorias
+                {categoriaSelecionada || "Categorias"}
 
-            <ChevronDown size={15} />
+                <ChevronDown
+                  size={15}
+                  className={`transition-transform ${
+                    categoriasOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
-          </button>
+              {categoriasOpen && (
+                <div
+                  id="lista-categorias-header"
+                  className="absolute left-0 top-full z-50 mt-3 w-64 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+                >
+                  <p className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">
+                    Escolha uma categoria
+                  </p>
+
+                  <div className="max-h-80 overflow-y-auto py-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelecionarCategoria?.("");
+                        setCategoriasOpen(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-red-50"
+                    >
+                      Todas as categorias
+                    </button>
+                    
+                    {carregandoCategorias ? (
+                      <p role="status" className="px-4 py-3 text-sm text-gray-500">
+                        Carregando categorias...
+                      </p>
+                    ) : erroCategorias ? (
+                      <p role="alert" className="px-4 py-3 text-sm text-red-600">
+                        Não foi possível carregar as categorias.
+                      </p>
+                    ) : categorias.length === 0 ? (
+                      <p className="px-4 py-3 text-sm text-gray-500">
+                        Nenhuma categoria disponível.
+                      </p>
+                    ) : (
+                      categorias.map((categoria) => (
+                        <button
+                          key={categoria}
+                          type="button"
+                          aria-pressed={categoriaSelecionada === categoria}
+                          onClick={() => {
+                            onSelecionarCategoria?.(categoria);
+                            setCategoriasOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 text-left text-sm hover:bg-red-50 ${
+                            categoriaSelecionada === categoria
+                              ? "bg-red-50 font-semibold text-red-600"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {categoria}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
 
           <a
