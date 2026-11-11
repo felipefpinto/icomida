@@ -117,7 +117,8 @@ async function continuar(tipo) {
   await continuar("responsavel");
 }
 
- 
+  async function continuarComoResponsavel() {
+  await continuar("responsavel");
 }
 
   return (
